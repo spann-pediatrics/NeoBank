@@ -77,6 +77,38 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 
+############ Aliquots Overview
+st.subheader("Aliquots Overview")
+
+# Metric card for total aliquots
+total_aliquots = df["Aliquots_num"].sum()
+metric_card("Number of Total Aliquots", total_aliquots)
+
+# Aliquots per subject
+aliquots_per_subject = df.groupby("Subject ID")["Aliquots_num"].sum().reset_index()
+aliquots_per_subject.columns = ["Subject ID", "Total Aliquots"]
+
+fig_aliquots = px.bar(
+    aliquots_per_subject,
+    x="Subject ID",
+    y="Total Aliquots",
+    text="Total Aliquots",
+    color="Total Aliquots",
+    color_continuous_scale="Greys"
+    )
+
+fig_aliquots.update_layout(
+    xaxis_title="Subject ID",
+    yaxis_title="Number of Aliquots",
+    plot_bgcolor="#1E1E1E",
+    paper_bgcolor="#1E1E1E",
+    font_color="white"
+    )
+
+st.plotly_chart(fig_aliquots, use_container_width=True)
+
+
+
 
 #############-----------------
 st.subheader("Milk & Nutrition Details")
@@ -86,7 +118,7 @@ milk_vars = [
     "MBM/DMB?",
     "HMF Y/N?",
     "TPN Y/N?",
-    'Iron Y/N? '
+    'Iron Y/N'
 ]
 
 selected_milk_var = st.selectbox("Select a milk-related variable to explore:", milk_vars)
@@ -116,6 +148,24 @@ longitudinal_subjects = subject_counts[subject_counts > 3].index.tolist()
 st.markdown("📍 Showing only subjects with > 3 timepoints")
 selected_subject = st.selectbox("Select a subject:", longitudinal_subjects)
 subject_df = df[df["Subject ID"] == selected_subject]
+
+# Show number of subjects with >3 timepoints
+num_longitudinal_subjects = len(longitudinal_subjects)
+st.markdown(f"""
+    <div style="
+        background-color: #444;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+        box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        color: white;
+        text-align: center;
+        font-size: 20px;
+        font-weight: italic;
+    ">
+        Subjects with > 3 timepoints = {num_longitudinal_subjects}
+    </div>
+""", unsafe_allow_html=True)
 
 # Define columns for layout
 col1, col2, col3 = st.columns(3)

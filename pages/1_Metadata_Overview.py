@@ -134,6 +134,30 @@ if selected_milk_var:
     # Bar chart
     st.bar_chart(value_counts)
 
+    st.subheader("Additional Notes Overview")
+
+    # Count the occurrences of each unique note (excluding NaN)
+    notes_counts = df["Additional Comments"].dropna().value_counts()
+
+    if not notes_counts.empty:
+        st.write(notes_counts.to_frame().rename(columns={"Additional Comments": "Count"}))
+        # Pie chart using Plotly
+        import plotly.express as px
+        fig_notes = px.pie(
+            names=notes_counts.index,
+            values=notes_counts.values,
+            title="Distribution of Additional Notes"
+        )
+        fig_notes.update_traces(textinfo='percent+label')
+        fig_notes.update_layout(
+            plot_bgcolor="#1E1E1E",
+            paper_bgcolor="#1E1E1E",
+            font_color="white"
+        )
+        st.plotly_chart(fig_notes, use_container_width=True)
+    else:
+        st.info("No data available in the 'additional notes' column.")
+
 
 #############-----------------
 st.subheader("Growth Metric Overview")

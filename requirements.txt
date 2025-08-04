@@ -3,4 +3,9 @@ pandas
 matplotlib
 openpyxl
 seaborn
-
+plotly
+scikit-learn
+numpy
+scipy
+statsmodels
+requests

@@ -1,8 +1,8 @@
 NeoBank/
 ├── Home.py
 ├── pages/
-│   ├── 1_Metadata_Overview.py
-│   ├── 2_HMO_Overview.py
+│   ├── 1_Unlinked_Samples.py
+│   ├── 2_Linked_Samples.py
 ├── .streamlit/
 │   └── config.toml
 ├── requirements.txt

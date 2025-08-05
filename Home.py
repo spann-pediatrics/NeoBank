@@ -6,7 +6,7 @@ st.title("Raw Data")
 # Load the data
 df = pd.read_excel("Unlinked_Merged.xlsx")
 
-st.subheader("📄 Raw Data Preview")
+st.subheader("📄 UNLINKED - Raw Data Preview")
 st.dataframe(df.head(10))  # Show only the first 10 rows for now
 
 # Convert to CSV for download
@@ -46,3 +46,20 @@ column_descriptions = {
 with st.expander("🧾 Column Descriptions"):
     for col, desc in column_descriptions.items():
         st.markdown(f"**{col}**: {desc}")
+
+
+
+
+df2 = pd.read_excel("cleaned_linkedmeta_updated.xlsx")
+st.subheader("📄 LINKED - Raw Data Preview")
+st.dataframe(df2.head(10))  # Show only the first 10 rows for now
+
+# Convert to CSV for download
+csv = df2.to_csv(index=False)
+
+st.download_button(
+    label="📥 Download Full Dataset (CSV)",
+    data=csv,
+    file_name="Linked_Meta.csv",
+    mime="text/csv"
+)

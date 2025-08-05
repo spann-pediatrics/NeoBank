@@ -1,24 +1,22 @@
 import streamlit as st
-import matplotlib.pyplot as plt
-import numpy as np
-import seaborn as sns
 import pandas as pd
+import numpy as np
+import plotly.express as px
+import matplotlib.pyplot as plt
 
-# Set up the dashboard
-st.set_page_config(page_title="NeoBank HMO Dashboard", layout="wide")
-st.title("NeoBank: HMO and Clinical Metadata Dashboard")
-#st.markdown("Explore "Unlinked" sample clinical metadata with human milk oligosaccaride data.")
+st.title("NeoBank: Linked Samples")
 
-# Load the merged dataset
-df = pd.read_excel("Unlinked_Merged.xlsx")
+
+meta = pd.read_excel("cleaned_linkedmeta_updated.xlsx")
+
 
 ####--------------------------------------------------------------------------------------------------------------
 ############### Overview section ###############
-st.header("Unlinked Sample Overview")
+st.header("Linked Metadata Overview")
 
 # Count metrics
-num_subjects = df["Subject ID"].nunique()
-num_samples = df["sample_unique_id"].nunique()
+num_subjects = meta["Subject ID"].nunique()
+num_samples = meta["Subject ID"].count()
 
 def metric_card(title, value, icon=""):
     st.markdown(f"""
@@ -39,10 +37,10 @@ def metric_card(title, value, icon=""):
 col1, col2 = st.columns(2)
 
 with col1:
-    metric_card("Total Samples", df["sample_unique_id"].nunique())
+    metric_card("Total Samples", meta["Subject ID"].count())
 
 with col2:
-    metric_card("Unique Subjects", df["Subject ID"].nunique())
+    metric_card("Unique Subjects", meta["Subject ID"].nunique())
 
 
 #############-------------------------
@@ -50,14 +48,14 @@ with col2:
 st.subheader("Sample Count per Subject")
 
 # Count how many samples per subject
-sample_counts = df["Subject ID"].value_counts().sort_index()
+sample_counts = meta["Subject ID"].value_counts().sort_index()
 sample_counts_df = sample_counts.reset_index()
 sample_counts_df.columns = ["Subject ID", "Sample Count"]
 
 # Plot bar chart using Plotly for better styling
 import plotly.express as px
 
-fig = px.bar(
+fig_milk = px.bar(
     sample_counts_df,
     x="Subject ID",
     y="Sample Count",
@@ -66,7 +64,7 @@ fig = px.bar(
     color_continuous_scale="Blues"
 )
 
-fig.update_layout(
+fig_milk.update_layout(
     xaxis_title="Subject ID",
     yaxis_title="Number of Samples",
     plot_bgcolor="#1E1E1E",
@@ -74,18 +72,59 @@ fig.update_layout(
     font_color="white"
 )
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig_milk, use_container_width=True)
+
+
+st.subheader("Feeding Time Period vs Is Pressed")
+
+pie_col1, pie_col2 = st.columns(2)
+
+with pie_col1:
+    feeding_counts = meta["Feeding Time Period"].value_counts(dropna=False)
+    fig_feeding = px.pie(
+        names=feeding_counts.index.astype(str),
+        values=feeding_counts.values,
+        title="Feeding Time Period"
+    )
+    fig_feeding.update_traces(textinfo='percent+label')
+    fig_feeding.update_layout(
+        plot_bgcolor="#1E1E1E",
+        paper_bgcolor="#1E1E1E",
+        font_color="white"
+    )
+    st.plotly_chart(fig_feeding, use_container_width=True)
+
+with pie_col2:
+    pressed_counts = meta["Is Prepped"].value_counts(dropna=False)
+    fig_pressed = px.pie(
+        names=pressed_counts.index.astype(str),
+        values=pressed_counts.values,
+        title="Is Pressed"
+    )
+    fig_pressed.update_traces(textinfo='percent+label')
+    fig_pressed.update_layout(
+        plot_bgcolor="#1E1E1E",
+        paper_bgcolor="#1E1E1E",
+        font_color="white"
+    )
+    st.plotly_chart(fig_pressed, use_container_width=True)
+
+
+
+
+
+
 
 
 ############ Aliquots Overview
 st.subheader("Aliquots Overview")
 
 # Metric card for total aliquots
-total_aliquots = df["Aliquots_num"].sum()
+total_aliquots = meta["Aliquots"].sum()
 metric_card("Number of Total Aliquots", total_aliquots)
 
 # Aliquots per subject
-aliquots_per_subject = df.groupby("Subject ID")["Aliquots_num"].sum().reset_index()
+aliquots_per_subject = meta.groupby("Subject ID")["Aliquots"].sum().reset_index()
 aliquots_per_subject.columns = ["Subject ID", "Total Aliquots"]
 
 fig_aliquots = px.bar(
@@ -108,17 +147,15 @@ fig_aliquots.update_layout(
 st.plotly_chart(fig_aliquots, use_container_width=True)
 
 
-
-
 #############-----------------
 st.subheader("Milk & Nutrition Details")
 
 milk_vars = [
     "Scavenged/Fresh?",
-    "MBM/DMB?",
-    "HMF Y/N?",
-    "TPN Y/N?",
-    'Iron Y/N'
+    "Type of Milk",
+    "HMF",
+    "TPN",
+    'Iron'
 ]
 
 selected_milk_var = st.selectbox("Select a milk-related variable to explore:", milk_vars)
@@ -126,7 +163,7 @@ selected_milk_var = st.selectbox("Select a milk-related variable to explore:", m
 if selected_milk_var:
     st.markdown(f"**Distribution of** `{selected_milk_var}`")
 
-    value_counts = df[selected_milk_var].value_counts()
+    value_counts = meta[selected_milk_var].value_counts()
 
     # Show value counts
     st.write(value_counts.to_frame().rename(columns={selected_milk_var: "Count"}))
@@ -134,10 +171,13 @@ if selected_milk_var:
     # Bar chart
     st.bar_chart(value_counts)
 
+    # Bar chart
+    st.bar_chart(value_counts)
+
     st.subheader("Additional Notes Overview")
 
     # Count the occurrences of each unique note (excluding NaN)
-    notes_counts = df["Additional Comments"].dropna().value_counts()
+    notes_counts = meta["Additional Comments"].dropna().value_counts()
 
     if not notes_counts.empty:
         st.write(notes_counts.to_frame().rename(columns={"Additional Comments": "Count"}))
@@ -159,6 +199,8 @@ if selected_milk_var:
         st.info("No data available in the 'additional notes' column.")
 
 
+
+        
 #############-----------------
 st.subheader("Growth Metric Overview")
 
@@ -166,12 +208,12 @@ st.subheader("Growth Metric Overview")
 
 
 # Filter subjects with >2 timepoints
-subject_counts = df["Subject ID"].value_counts()
-longitudinal_subjects = subject_counts[subject_counts > 3].index.tolist()
+subject_counts = meta["Subject ID"].value_counts()
+longitudinal_subjects = subject_counts[subject_counts >= 3].index.tolist()
 
 st.markdown("📍 Showing only subjects with > 3 timepoints")
 selected_subject = st.selectbox("Select a subject:", longitudinal_subjects)
-subject_df = df[df["Subject ID"] == selected_subject]
+subject_df = meta[meta["Subject ID"] == selected_subject]
 
 # Show number of subjects with >3 timepoints
 num_longitudinal_subjects = len(longitudinal_subjects)
@@ -187,7 +229,7 @@ st.markdown(f"""
         font-size: 20px;
         font-weight: italic;
     ">
-        Subjects with > 3 timepoints = {num_longitudinal_subjects}
+        {num_longitudinal_subjects} subjects with > 3 timepoints
     </div>
 """, unsafe_allow_html=True)
 
@@ -196,8 +238,8 @@ col1, col2, col3 = st.columns(3)
 
 # Standard figure style function
 def make_growth_plot(x, y, title):
-    fig, ax = plt.subplots(figsize=(4, 3))
-    fig.patch.set_facecolor('#1E1E1E')
+    fig1, ax = plt.subplots(figsize=(4, 3))
+    fig1.patch.set_facecolor('#1E1E1E')
     ax.set_facecolor('#1E1E1E')
     ax.plot(subject_df[x], subject_df[y], marker="o", color="#4A90E2")
     ax.set_xlabel(x, color='white')
@@ -210,16 +252,16 @@ def make_growth_plot(x, y, title):
     if not x_vals.empty:
         tick_range = np.arange(x_vals.min(), x_vals.max() + 2, 3)
         ax.set_xticks(tick_range)
-    return fig
+    return fig1
 
 # Weight
 with col1:
-    st.pyplot(make_growth_plot("DOL ", "Current Weight", "Weight (g)"))
+    st.pyplot(make_growth_plot("DOL", "Current Weight", "Weight (g)"))
 
 # Height
 with col2:
-    st.pyplot(make_growth_plot("DOL ", "Current Height", "Height (cm)"))
+    st.pyplot(make_growth_plot("DOL", "Current Height", "Height (cm)"))
 
 # Head Circumference
 with col3:
-    st.pyplot(make_growth_plot("DOL ", "Current HC", "Head Circumference (cm)"))
+    st.pyplot(make_growth_plot("DOL", "Current HC", "Head Circumference (cm)"))

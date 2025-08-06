@@ -171,7 +171,12 @@ longitudinal_subjects = subject_counts[subject_counts > 3].index.tolist()
 
 st.markdown("📍 Showing only subjects with > 3 timepoints")
 selected_subject = st.selectbox("Select a subject:", longitudinal_subjects)
-subject_df = df[df["Subject ID"] == selected_subject]
+
+# Filter and sort by DOL
+subject_df = df[df["Subject ID"] == selected_subject].copy()
+subject_df["DOL "] = pd.to_numeric(subject_df["DOL "], errors="coerce")  # ensure numeric
+subject_df = subject_df.sort_values("DOL ")  # 👈 ensures line plots follow correct order
+
 
 # Show number of subjects with >3 timepoints
 num_longitudinal_subjects = len(longitudinal_subjects)
@@ -228,7 +233,7 @@ with col3:
 
 
 
-
+##############################################################
 st.title("Unlinked HMO Overview")
 
 with st.container():
@@ -367,3 +372,60 @@ else:
         ax.set_xticks(tick_range)
 
     st.pyplot(fig)
+
+
+
+####SPECIFICS HMO x META#####################
+import streamlit as st
+import plotly.express as px
+
+ # Clean column names
+df.columns = df.columns.str.strip()
+
+# --- Filter to subjects with > 3 timepoints ---
+subject_counts = df["Subject ID"].value_counts()
+longitudinal_subjects = subject_counts[subject_counts > 3].index.tolist()
+df_long = df[df["Subject ID"].isin(longitudinal_subjects)].copy()
+
+# Create "Scavenged Type" from Scavenged/Fresh?
+df_long["Scavenged Type"] = df_long["Scavenged/Fresh?"].map({
+    "Y": "Scavenged Feeding Tube",
+    "N": "Other"
+}).fillna("Other")
+
+# Create numeric size for Iron Y/N
+df_long["Iron Size"] = df_long["Iron Y/N"].map({"Y": 20, "N": 10}).fillna(10)
+
+# Convert DOL to numeric
+df_long["DOL"] = pd.to_numeric(df_long["DOL"], errors="coerce")
+
+# --- Subject selector ---
+selected_subject = st.selectbox("Select a Subject ID", sorted(df_long["Subject ID"].unique()))
+subject_df = df_long[df_long["Subject ID"] == selected_subject].copy()
+
+# --- Plot ---
+fig = px.scatter(
+    subject_df,
+    x="DOL",
+    y="2FL",
+    color="TPN Y/N?",
+    symbol="Scavenged/Fresh?",
+    size="Iron Size",
+    hover_name="sample_unique_id",
+    hover_data={
+        "TPN Y/N?": True,
+        "HMF Y/N?": True,
+        "Iron Y/N": True,
+        "Scavenged/Fresh?": True,
+        "Additional Comments": True
+    },
+    title=f"2’FL over Time for {selected_subject}"
+)
+
+fig.update_layout(
+    plot_bgcolor="#1E1E1E",
+    paper_bgcolor="#1E1E1E",
+    font_color="white"
+)
+
+st.plotly_chart(fig, use_container_width=True)

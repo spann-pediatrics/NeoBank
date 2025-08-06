@@ -75,46 +75,6 @@ fig_milk.update_layout(
 st.plotly_chart(fig_milk, use_container_width=True)
 
 
-st.subheader("Feeding Time Period vs Is Pressed")
-
-pie_col1, pie_col2 = st.columns(2)
-
-with pie_col1:
-    feeding_counts = meta["Feeding Time Period"].value_counts(dropna=False)
-    fig_feeding = px.pie(
-        names=feeding_counts.index.astype(str),
-        values=feeding_counts.values,
-        title="Feeding Time Period"
-    )
-    fig_feeding.update_traces(textinfo='percent+label')
-    fig_feeding.update_layout(
-        plot_bgcolor="#1E1E1E",
-        paper_bgcolor="#1E1E1E",
-        font_color="white"
-    )
-    st.plotly_chart(fig_feeding, use_container_width=True)
-
-with pie_col2:
-    pressed_counts = meta["Is Prepped"].value_counts(dropna=False)
-    fig_pressed = px.pie(
-        names=pressed_counts.index.astype(str),
-        values=pressed_counts.values,
-        title="Is Pressed"
-    )
-    fig_pressed.update_traces(textinfo='percent+label')
-    fig_pressed.update_layout(
-        plot_bgcolor="#1E1E1E",
-        paper_bgcolor="#1E1E1E",
-        font_color="white"
-    )
-    st.plotly_chart(fig_pressed, use_container_width=True)
-
-
-
-
-
-
-
 
 ############ Aliquots Overview
 st.subheader("Aliquots Overview")
@@ -171,33 +131,104 @@ if selected_milk_var:
     # Bar chart
     st.bar_chart(value_counts)
 
-    # Bar chart
-    st.bar_chart(value_counts)
 
-    st.subheader("Additional Notes Overview")
 
-    # Count the occurrences of each unique note (excluding NaN)
-    notes_counts = meta["Additional Comments"].dropna().value_counts()
+pie_col1, pie_col2 = st.columns(2)
 
-    if not notes_counts.empty:
-        st.write(notes_counts.to_frame().rename(columns={"Additional Comments": "Count"}))
-        # Pie chart using Plotly
-        import plotly.express as px
-        fig_notes = px.pie(
-            names=notes_counts.index,
-            values=notes_counts.values,
-            title="Distribution of Additional Notes"
-        )
-        fig_notes.update_traces(textinfo='percent+label')
-        fig_notes.update_layout(
-            plot_bgcolor="#1E1E1E",
-            paper_bgcolor="#1E1E1E",
-            font_color="white"
-        )
-        st.plotly_chart(fig_notes, use_container_width=True)
-    else:
-        st.info("No data available in the 'additional notes' column.")
+with pie_col1:
+    feeding_counts = meta["Feeding Time Period"].value_counts(dropna=False)
+    fig_feeding = px.pie(
+        names=feeding_counts.index.astype(str),
+        values=feeding_counts.values,
+        title="Feeding Time Period"
+    )
+    fig_feeding.update_traces(textinfo='percent+label')
+    fig_feeding.update_layout(
+        plot_bgcolor="#1E1E1E",
+        paper_bgcolor="#1E1E1E",
+        font_color="white"
+    )
+    st.plotly_chart(fig_feeding, use_container_width=True)
 
+with pie_col2:
+    pressed_counts = meta["Is Prepped"].value_counts(dropna=False)
+    fig_pressed = px.pie(
+        names=pressed_counts.index.astype(str),
+        values=pressed_counts.values,
+        title="Is Prepped"
+    )
+    fig_pressed.update_traces(textinfo='percent+label')
+    fig_pressed.update_layout(
+        plot_bgcolor="#1E1E1E",
+        paper_bgcolor="#1E1E1E",
+        font_color="white"
+    )
+    st.plotly_chart(fig_pressed, use_container_width=True)
+
+
+
+
+st.subheader("Additional Notes Overview")
+
+# Count the occurrences of each unique note (excluding NaN)
+notes_counts = meta["Additional Comments"].dropna().value_counts()
+
+if not notes_counts.empty:
+    st.write(notes_counts.to_frame().rename(columns={"Additional Comments": "Count"}))
+    # Pie chart using Plotly
+    import plotly.express as px
+    fig_notes = px.pie(
+        names=notes_counts.index,
+        values=notes_counts.values,
+        title="Distribution of Additional Notes"
+    )
+    fig_notes.update_traces(textinfo='percent+label')
+    fig_notes.update_layout(
+        plot_bgcolor="#1E1E1E",
+        paper_bgcolor="#1E1E1E",
+        font_color="white"
+    )
+    st.plotly_chart(fig_notes, use_container_width=True)
+else:
+    st.info("No data available in the 'additional notes' column.")
+
+
+
+
+
+        
+#############----------------------------------
+st.subheader("DOL Category per Subject")
+
+# Prepare data: group by Subject ID and DOL Category, count occurrences
+dol_cat_counts = meta.groupby(["Subject ID", "DOL Category"]).size().reset_index(name="Count")
+
+# Pivot for plotting
+dol_cat_pivot = dol_cat_counts.pivot(index="Subject ID", columns="DOL Category", values="Count").fillna(0)
+
+# Melt the pivoted DataFrame for Plotly
+dol_cat_long = dol_cat_pivot.reset_index().melt(id_vars="Subject ID", var_name="DOL Category", value_name="Count")
+
+# Plot as stacked bar chart using Plotly
+fig_dol_cat = px.bar(
+    dol_cat_long,
+    x="Subject ID",
+    y="Count",
+    color="DOL Category",
+    labels={"Count": "Count", "Subject ID": "Subject ID"},
+    title="DOL Category Distribution per Subject"
+)
+
+fig_dol_cat.update_layout(
+    barmode="stack",
+    xaxis_title="Subject ID",
+    yaxis_title="Count",
+    plot_bgcolor="#1E1E1E",
+    paper_bgcolor="#1E1E1E",
+    font_color="white"
+)
+
+st.plotly_chart(fig_dol_cat, use_container_width=True)
 
 
         
@@ -213,7 +244,11 @@ longitudinal_subjects = subject_counts[subject_counts >= 3].index.tolist()
 
 st.markdown("📍 Showing only subjects with > 3 timepoints")
 selected_subject = st.selectbox("Select a subject:", longitudinal_subjects)
-subject_df = meta[meta["Subject ID"] == selected_subject]
+
+# Filter and sort by DOL
+subject_df = meta[meta["Subject ID"] == selected_subject].copy()
+subject_df["DOL"] = pd.to_numeric(subject_df["DOL"], errors="coerce")  # ensure numeric
+subject_df = subject_df.sort_values("DOL")  # 👈 ensures line plots follow correct order
 
 # Show number of subjects with >3 timepoints
 num_longitudinal_subjects = len(longitudinal_subjects)

@@ -261,7 +261,7 @@ hmo_columns = ['2FL','DFLAC', '3SL', '6SL', 'LNT', 'LNnT', 'LNFPI',
 
 
 # ---- Classify Secretor Status ----
-cutoff = 5_000_000  # AUC threshold for 2’FL
+cutoff = 0.5  # AUC threshold for 2’FL
 df["Secretor Status"] = df["2FL"].apply(
     lambda x: "Secretor" if x >= cutoff else "Non-Secretor"
 )
@@ -327,51 +327,51 @@ with col2:
 
 st.subheader("HMO Concentrations Over Time (Longitudinal Subjects)")
 
-# Identify HMO columns (from 2FL to DSLNT), excluding "Iso (control)" if present
-hmo_start = "2FL"
-hmo_end = "DSLNT"
-hmo_columns = df.loc[:, hmo_start:hmo_end].columns.tolist()
-# Remove "Iso (control)" if it exists in the list
-hmo_columns = [col for col in hmo_columns if col != "Iso (control)"]
+# # Identify HMO columns (from 2FL to DSLNT), excluding "Iso (control)" if present
+# hmo_start = "2FL"
+# hmo_end = "DSLNT"
+# hmo_columns = df.loc[:, hmo_start:hmo_end].columns.tolist()
+# # Remove "Iso (control)" if it exists in the list
+# hmo_columns = [col for col in hmo_columns if col != "Iso (control)"]
 
-# Filter subjects with >3 timepoints
-subject_counts = df["Subject ID"].value_counts()
-longitudinal_subjects = subject_counts[subject_counts > 3].index.tolist()
+# # Filter subjects with >3 timepoints
+# subject_counts = df["Subject ID"].value_counts()
+# longitudinal_subjects = subject_counts[subject_counts > 3].index.tolist()
 
-if not longitudinal_subjects:
-    st.warning("No subjects with more than 3 timepoints.")
-elif not hmo_columns:
-    st.warning("No HMO columns found in the dataset (2FL to DSLNT).")
-else:
-    selected_subject = st.selectbox("Select a subject (with >3 timepoints):", longitudinal_subjects)
-    selected_hmo = st.selectbox("Select an HMO to plot:", hmo_columns)
-    subject_df = df[df["Subject ID"] == selected_subject]
+# if not longitudinal_subjects:
+#     st.warning("No subjects with more than 3 timepoints.")
+# elif not hmo_columns:
+#     st.warning("No HMO columns found in the dataset (2FL to DSLNT).")
+# else:
+#     selected_subject = st.selectbox("Select a subject (with >3 timepoints):", longitudinal_subjects)
+#     selected_hmo = st.selectbox("Select an HMO to plot:", hmo_columns)
+#     subject_df = df[df["Subject ID"] == selected_subject]
 
-    st.markdown(f"**{selected_hmo} concentrations over time for subject `{selected_subject}`**")
+#     st.markdown(f"**{selected_hmo} concentrations over time for subject `{selected_subject}`**")
 
-    fig, ax = plt.subplots(figsize=(6, 4))
-    fig.patch.set_facecolor('#1E1E1E')
-    ax.set_facecolor('#1E1E1E')
+#     fig, ax = plt.subplots(figsize=(6, 4))
+#     fig.patch.set_facecolor('#1E1E1E')
+#     ax.set_facecolor('#1E1E1E')
 
-    # Plot HMO concentration vs DOL for the selected subject
-    ax.plot(
-        subject_df["DOL "], 
-        subject_df[selected_hmo], 
-        marker="o", 
-        color="#E24A4A"
-    )
-    ax.set_xlabel("DOL", color='white')
-    ax.set_ylabel(f"{selected_hmo} Concentration", color='white')
-    ax.set_title(f"{selected_hmo} over Time", color='white')
-    ax.tick_params(colors='white')
+#     # Plot HMO concentration vs DOL for the selected subject
+#     ax.plot(
+#         subject_df["DOL "], 
+#         subject_df[selected_hmo], 
+#         marker="o", 
+#         color="#E24A4A"
+#     )
+#     ax.set_xlabel("DOL", color='white')
+#     ax.set_ylabel(f"{selected_hmo} Concentration", color='white')
+#     ax.set_title(f"{selected_hmo} over Time", color='white')
+#     ax.tick_params(colors='white')
 
-    # Add tick marks every 3 DOL units
-    x_vals = subject_df["DOL "].dropna().sort_values()
-    if not x_vals.empty:
-        tick_range = np.arange(x_vals.min(), x_vals.max() + 2, 3)
-        ax.set_xticks(tick_range)
+#     # Add tick marks every 3 DOL units
+#     x_vals = subject_df["DOL "].dropna().sort_values()
+#     if not x_vals.empty:
+#         tick_range = np.arange(x_vals.min(), x_vals.max() + 2, 3)
+#         ax.set_xticks(tick_range)
 
-    st.pyplot(fig)
+#     st.pyplot(fig)
 
 
 
@@ -379,39 +379,40 @@ else:
 import streamlit as st
 import plotly.express as px
 
- # Clean column names
+import streamlit as st
+import plotly.express as px
+
+# Clean column names
 df.columns = df.columns.str.strip()
 
-# --- Filter to subjects with > 3 timepoints ---
+# Define HMO columns
+hmo_columns = ["2FL", "DFLAC", "3SL", "6SL", "LNT", "LNnT", "LNFPI",
+               "LNFPII", "LNFPIII", "LSTc", "DFLNT", "DSLNT", 
+               "DFLNH", "FDSLNH", "DSLNH"]
+
+# Filter to subjects with > 3 timepoints
 subject_counts = df["Subject ID"].value_counts()
 longitudinal_subjects = subject_counts[subject_counts > 3].index.tolist()
 df_long = df[df["Subject ID"].isin(longitudinal_subjects)].copy()
 
-# Create "Scavenged Type" from Scavenged/Fresh?
-df_long["Scavenged Type"] = df_long["Scavenged/Fresh?"].map({
-    "Y": "Scavenged Feeding Tube",
-    "N": "Other"
-}).fillna("Other")
+# Dropdowns with unique keys to prevent conflicts
+selected_subject = st.selectbox("Select a Subject ID", sorted(df_long["Subject ID"].unique()), key="subject")
+selected_hmo = st.selectbox("Select an HMO to plot", hmo_columns, key="hmo")
 
-# Create numeric size for Iron Y/N
+# Preprocessing
 df_long["Iron Size"] = df_long["Iron Y/N"].map({"Y": 20, "N": 10}).fillna(10)
-
-# Convert DOL to numeric
 df_long["DOL"] = pd.to_numeric(df_long["DOL"], errors="coerce")
 
-# --- Subject selector ---
-selected_subject = st.selectbox("Select a Subject ID", sorted(df_long["Subject ID"].unique()))
 subject_df = df_long[df_long["Subject ID"] == selected_subject].copy()
 
-# --- Plot ---
+# Plot
 fig = px.scatter(
     subject_df,
     x="DOL",
-    y="2FL",
-    color="TPN Y/N?",
+    y=selected_hmo,
+    color="MBM/DMB?",
     symbol="Scavenged/Fresh?",
     size="Iron Size",
-    hover_name="sample_unique_id",
     hover_data={
         "TPN Y/N?": True,
         "HMF Y/N?": True,
@@ -419,7 +420,7 @@ fig = px.scatter(
         "Scavenged/Fresh?": True,
         "Additional Comments": True
     },
-    title=f"2’FL over Time for {selected_subject}"
+    title=f"{selected_hmo} over Time for {selected_subject}"
 )
 
 fig.update_layout(

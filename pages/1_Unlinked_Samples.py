@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import pandas as pd
+import plotly.express as px
 
 # Set up the dashboard
 st.set_page_config(page_title="NeoBank HMO Dashboard", layout="wide")
@@ -258,34 +259,39 @@ hmo_columns = ['2FL','DFLAC', '3SL', '6SL', 'LNT', 'LNnT', 'LNFPI',
        'LNFPII', 'LNFPIII', 'LSTc', 'DFLNT', 'DSLNT', 'DFLNH', 'FDSLNH',
        'DSLNH']
 
+# Define consistent color maps
+sample_source_colors = {
+    "Residual": "#faff00",    # bright yellow
+    "Scavenged": "#ffc000"    # orange-ish
+}
+
+secretor_colors = {
+    "Secretor": "#8ecfff",        # light blue
+    "Non-Secretor": "#ffffff"     # white
+}
 
 
-# ---- Classify Secretor Status ----
-cutoff = 0.5  # AUC threshold for 2’FL
-df["Secretor Status"] = df["2FL"].apply(
-    lambda x: "Secretor" if x >= cutoff else "Non-Secretor"
+# ---- Sample Source Counts ----
+# Count values in the Sample Source column
+source_counts = df["Sample Source"].value_counts().reset_index()
+source_counts.columns = ["Sample Source", "Count"]
+
+# Create the pie chart
+fig_source = px.pie(
+    source_counts,
+    names="Sample Source",
+    values="Count",
+    title="Milk Collection Type",
+    color="Sample Source",
+    color_discrete_map= sample_source_colors
 )
 
-# ---- HMO Range Bar Chart ----
-hmo_ranges = df[hmo_columns].agg(['min', 'max']).T
-hmo_ranges['Range'] = hmo_ranges['max'] - hmo_ranges['min']
-hmo_ranges = hmo_ranges.reset_index().rename(columns={'index': 'HMO'})
-
-fig_range = px.bar(
-    hmo_ranges,
-    x="HMO",
-    y="Range",
-    text="Range",
-    color="Range",
-    color_continuous_scale="Viridis"
-)
-fig_range.update_layout(
+fig_source.update_layout(
     plot_bgcolor="#1E1E1E",
     paper_bgcolor="#1E1E1E",
-    font_color="white",
-    xaxis_title="",
-    yaxis_title="Range of Concentration",
+    font_color="white"
 )
+
 
 # ---- Secretor Status Pie Chart ----
 status_counts = df["Secretor Status"].value_counts().reset_index()
@@ -295,92 +301,128 @@ fig_pie = px.pie(
     status_counts,
     names="Secretor Status",
     values="Count",
+    title="Secretor Status Classification",
     color="Secretor Status",
-    color_discrete_map={
-        "Secretor": "#76C7F0",       # light blue
-        "Non-Secretor": "#FFFFFF"    # white
-    }
+    color_discrete_map= secretor_colors
 )
 
 fig_pie.update_layout(
-    title="Secretor Status Classification (2’FL ≥ 5M AUC)",
+    title="Secretor Status Classification",
     plot_bgcolor="#1E1E1E",
     paper_bgcolor="#1E1E1E",
     font_color="white"
 )
 
 # ---- Layout Section ----
-col1, col2 = st.columns([2,1])
+col1, col2 = st.columns([1,1])
 
 with col1:
-    st.markdown("**Range of HMO Concentrations**")
-    st.plotly_chart(fig_range, use_container_width=True)
+    # st.markdown("**Milk Collection Type**")
+    st.plotly_chart(fig_source, use_container_width=True)
+
 
 with col2:
-    st.markdown("**Secretor Status (2’FL ≥ 5M AUC)**")
+    # st.markdown("**Secretor Status**")
     st.plotly_chart(fig_pie, use_container_width=True)
 
 
+# ---- Table for Secretor Status x Sample Source Groups ----
+# Create a pivot table for counts by Secretor Status (rows) and Sample Source (columns)
+# Prepare data
+count_df = (
+    df[df["Sample Source"].isin(["Residual", "Scavenged"])]
+    .groupby(["Secretor Status", "Sample Source"])
+    .size()
+    .reset_index(name="Count")
+)
+
+# Plot
+fig = px.bar(
+    count_df,
+    x="Secretor Status",
+    y="Count",
+    color="Sample Source",
+    barmode="group",
+    text="Count",
+    title="Sample Counts by Secretor Status and Sample Source",
+    color_discrete_map=sample_source_colors
+)
+
+fig.update_layout(
+    plot_bgcolor="#1E1E1E",
+    paper_bgcolor="#1E1E1E",
+    font_color="white"
+)
+
+st.plotly_chart(fig, use_container_width=True)
 
 
+# ---- Milk Type ----
+group1_options = sorted(df["Secretor Status"].dropna().unique())
+group2_options = sorted(df["Sample Source"].dropna().unique())
+
+selected_secretor = st.selectbox("Select Secretor Status", group1_options, key="secretor_group")
+selected_source = st.selectbox("Select Sample Source", group2_options, key="sample_source")
 
 
-st.subheader("HMO Concentrations Over Time (Longitudinal Subjects)")
+filtered_df = df[
+    (df["Secretor Status"] == selected_secretor) &
+    (df["Sample Source"] == selected_source)
+]
 
-# # Identify HMO columns (from 2FL to DSLNT), excluding "Iso (control)" if present
-# hmo_start = "2FL"
-# hmo_end = "DSLNT"
-# hmo_columns = df.loc[:, hmo_start:hmo_end].columns.tolist()
-# # Remove "Iso (control)" if it exists in the list
-# hmo_columns = [col for col in hmo_columns if col != "Iso (control)"]
+hmo_ranges = filtered_df[hmo_columns].agg(["min", "max"]).T
+hmo_ranges["Range"] = hmo_ranges["max"] - hmo_ranges["min"]
+hmo_ranges = hmo_ranges.reset_index().rename(columns={"index": "HMO"})
 
-# # Filter subjects with >3 timepoints
-# subject_counts = df["Subject ID"].value_counts()
-# longitudinal_subjects = subject_counts[subject_counts > 3].index.tolist()
+fig = px.bar(
+    hmo_ranges,
+    x="HMO",
+    y="Range",
+    text="Range",
+    color="Range",
+    color_continuous_scale="Reds",
+    title=f"HMO Relative Abundance for {selected_secretor} + {selected_source}"
+)
 
-# if not longitudinal_subjects:
-#     st.warning("No subjects with more than 3 timepoints.")
-# elif not hmo_columns:
-#     st.warning("No HMO columns found in the dataset (2FL to DSLNT).")
-# else:
-#     selected_subject = st.selectbox("Select a subject (with >3 timepoints):", longitudinal_subjects)
-#     selected_hmo = st.selectbox("Select an HMO to plot:", hmo_columns)
-#     subject_df = df[df["Subject ID"] == selected_subject]
+fig.update_layout(
+    plot_bgcolor="#1E1E1E",
+    paper_bgcolor="#1E1E1E",
+    font_color="white",
+    xaxis_title="",
+    yaxis_title="Relative Abundance Range (AUC)",
+)
 
-#     st.markdown(f"**{selected_hmo} concentrations over time for subject `{selected_subject}`**")
+st.plotly_chart(fig, use_container_width=True)
 
-#     fig, ax = plt.subplots(figsize=(6, 4))
-#     fig.patch.set_facecolor('#1E1E1E')
-#     ax.set_facecolor('#1E1E1E')
 
-#     # Plot HMO concentration vs DOL for the selected subject
-#     ax.plot(
-#         subject_df["DOL "], 
-#         subject_df[selected_hmo], 
-#         marker="o", 
-#         color="#E24A4A"
-#     )
-#     ax.set_xlabel("DOL", color='white')
-#     ax.set_ylabel(f"{selected_hmo} Concentration", color='white')
-#     ax.set_title(f"{selected_hmo} over Time", color='white')
-#     ax.tick_params(colors='white')
-
-#     # Add tick marks every 3 DOL units
-#     x_vals = subject_df["DOL "].dropna().sort_values()
-#     if not x_vals.empty:
-#         tick_range = np.arange(x_vals.min(), x_vals.max() + 2, 3)
-#         ax.set_xticks(tick_range)
-
-#     st.pyplot(fig)
-
+st.subheader("HMO Relative Abundance Over Time (Longitudinal Subjects)")
 
 
 ####SPECIFICS HMO x META#####################
-import streamlit as st
-import plotly.express as px
 
-import streamlit as st
-import plotly.express as px
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("""
+    <div style="background-color: #333; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+        <strong style="color:white;">Color (MBM/DBM?)</strong><br>
+        🩷 MBM<br>
+        ⚪ DBM<br>
+        🟪 MBM + DBM<br>
+        💚 Other
+    </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.markdown("""
+    <div style="background-color: #333; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+        <strong style="color:white;">Shape (Sample Source)</strong><br>
+        ● Residual<br>
+        × Scavenged
+    </div>
+    """, unsafe_allow_html=True)
+
+
 
 # Clean column names
 df.columns = df.columns.str.strip()
@@ -405,22 +447,48 @@ df_long["DOL"] = pd.to_numeric(df_long["DOL"], errors="coerce")
 
 subject_df = df_long[df_long["Subject ID"] == selected_subject].copy()
 
+mbm_colors = {
+    "MBM": "#E24ADF",     # pink
+    "DBM": "#F4F4F4",     # white
+    "MBM + DBM": "#C2A4EC", # purple
+    "Other": "#959191"    # Fallback (optional)
+}
+
+symbol_map = {
+    "Residual": "triangle-up",  # or "circle", "diamond", "square", "triangle-up", etc.
+    "Scavenged": "circle",     # or "diamond", "square", "triangle-up", etc.
+    "Other": "cross"
+}
+
+size_map = {
+    "Very Preterm": 10,
+    "Moderate Preterm": 20,
+    "Late Preterm": 30,
+    "Term": 40
+}
+
+subject_df["CGA_Size"] = subject_df["CGA_cat"].map(size_map)
+
+
 # Plot
 fig = px.scatter(
     subject_df,
     x="DOL",
     y=selected_hmo,
     color="MBM/DMB?",
-    symbol="Scavenged/Fresh?",
-    size="Iron Size",
+    symbol="Sample Source",
+    size="CGA_Size",
     hover_data={
         "TPN Y/N?": True,
         "HMF Y/N?": True,
         "Iron Y/N": True,
-        "Scavenged/Fresh?": True,
-        "Additional Comments": True
+        "CGA": True,
+        "CGA_cat": True,
+        "Sample Source": True
     },
-    title=f"{selected_hmo} over Time for {selected_subject}"
+    title=f"{selected_hmo} over Time for {selected_subject}",
+    symbol_map=symbol_map,
+    color_discrete_map=mbm_colors
 )
 
 fig.update_layout(

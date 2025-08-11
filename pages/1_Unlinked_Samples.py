@@ -1,11 +1,15 @@
+# import packages
+
 import streamlit as st
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import pandas as pd
 import plotly.express as px
+from datetime import datetime
 
-# Set up the dashboard
+
+# Page setup
 st.set_page_config(page_title="NeoBank HMO Dashboard", layout="wide")
 st.title("NeoBank: Unlinked Samples")
 #st.markdown("Explore "Unlinked" sample clinical metadata with human milk oligosaccaride data.")
@@ -15,7 +19,12 @@ df = pd.read_excel("Unlinked_Merged.xlsx")
 
 ####--------------------------------------------------------------------------------------------------------------
 ############### Overview section ###############
-st.header("Unlinked Metadata Overview")
+# --------------- SECTION: Metadata Overview ---------------
+today = datetime.today().strftime("%B %d, %Y")  # e.g., August 07, 2025
+st.markdown(f"**Last updated:** {today}")
+
+
+st.header("Sample Overview")
 
 # Count metrics
 num_subjects = df["Subject ID"].nunique()
@@ -46,7 +55,7 @@ with col2:
     metric_card("Unique Subjects", df["Subject ID"].nunique())
 
 
-#############-------------------------
+    #############-------------------------
 
 st.subheader("Sample Count per Subject")
 
@@ -116,7 +125,7 @@ st.subheader("Milk & Nutrition Details")
 
 milk_vars = [
     "Scavenged/Fresh?",
-    "MBM/DMB?",
+    "MBM/DBM?",
     "HMF Y/N?",
     "TPN Y/N?",
     'Iron Y/N'
@@ -160,10 +169,10 @@ if selected_milk_var:
         st.info("No data available in the 'additional notes' column.")
 
 
-#############-----------------
-st.subheader("Growth Metric Overview")
 
 #############-----------------
+
+st.subheader("Growth Metrics")
 
 
 # Filter subjects with >2 timepoints
@@ -175,8 +184,8 @@ selected_subject = st.selectbox("Select a subject:", longitudinal_subjects)
 
 # Filter and sort by DOL
 subject_df = df[df["Subject ID"] == selected_subject].copy()
-subject_df["DOL "] = pd.to_numeric(subject_df["DOL "], errors="coerce")  # ensure numeric
-subject_df = subject_df.sort_values("DOL ")  # 👈 ensures line plots follow correct order
+subject_df["CGA"] = pd.to_numeric(subject_df["CGA"], errors="coerce")  # ensure numeric
+subject_df = subject_df.sort_values("CGA")  # 👈 ensures line plots follow correct order
 
 
 # Show number of subjects with >3 timepoints
@@ -220,21 +229,21 @@ def make_growth_plot(x, y, title):
 
 # Weight
 with col1:
-    st.pyplot(make_growth_plot("DOL ", "Current Weight", "Weight (g)"))
+    st.pyplot(make_growth_plot("CGA", "Current Weight", "Weight (g)"))
 
 # Height
 with col2:
-    st.pyplot(make_growth_plot("DOL ", "Current Height", "Height (cm)"))
+    st.pyplot(make_growth_plot("CGA", "Current Height", "Height (cm)"))
 
 # Head Circumference
 with col3:
-    st.pyplot(make_growth_plot("DOL ", "Current HC", "Head Circumference (cm)"))
+    st.pyplot(make_growth_plot("CGA", "Current HC", "Head Circumference (cm)"))
 
 
 
 
-
-##############################################################
+####--------------------------------------------------------------------------------------------------------------
+############### HMO Overview section ###############
 st.title("Unlinked HMO Overview")
 
 with st.container():
@@ -329,6 +338,7 @@ with col2:
 # ---- Table for Secretor Status x Sample Source Groups ----
 # Create a pivot table for counts by Secretor Status (rows) and Sample Source (columns)
 # Prepare data
+
 count_df = (
     df[df["Sample Source"].isin(["Residual", "Scavenged"])]
     .groupby(["Secretor Status", "Sample Source"])
@@ -358,6 +368,7 @@ st.plotly_chart(fig, use_container_width=True)
 
 
 # ---- Milk Type ----
+st.subheader("Secretor Status x Sample Source HMO Relative Abundance")
 group1_options = sorted(df["Secretor Status"].dropna().unique())
 group2_options = sorted(df["Sample Source"].dropna().unique())
 
@@ -395,11 +406,103 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 
-st.subheader("HMO Relative Abundance Over Time (Longitudinal Subjects)")
+
+
+
+###################################
+
+sums = pd.read_excel("Unlinked_HMO_SUMS.xlsx")
+sums.columns = sums.columns.str.strip()
+# sums["Secretor Status"] = sums["Secretor Status"].astype(str).str.strip()
+# sums["Sample Source"] = sums["Sample Source"].astype(str).str.strip()
+
+# st.subheader("Secretor Status x Sample Source HMO SUM")
+
+# # Dropdowns
+# group1_s = sorted(sums["Secretor Status"].dropna().unique())
+# group2_ss = sorted(sums["Sample Source"].dropna().unique())
+
+# selected_secretor = st.selectbox("Select Secretor Status", group1_s, key="secretor_group")
+# selected_source = st.selectbox("Select Sample Source", group2_ss, key="sample_source")
+
+# # Filter and compute HMO ranges
+# filtered_sums = sums[
+#     (sums["Secretor Status"] == selected_secretor) &
+#     (sums["Sample Source"] == selected_source)
+# ]
+
+# hmo_ranges = filtered_sums[hmo_columns].agg(["min", "max"]).T
+# hmo_ranges["Range"] = hmo_ranges["max"] - hmo_ranges["min"]
+# hmo_ranges = hmo_ranges.reset_index().rename(columns={"index": "HMO"})
+
+# # Plot
+# fig = px.bar(
+#     hmo_ranges,
+#     x="HMO",                     
+#     y="Range",
+#     text="Range",
+#     color="Range",
+#     color_continuous_scale="Reds",
+#     title=f"HMO Relative Abundance for {selected_secretor} + {selected_source}"
+# )
+
+# fig.update_layout(
+#     plot_bgcolor="#1E1E1E",
+#     paper_bgcolor="#1E1E1E",
+#     font_color="white",
+#     xaxis_title="",
+#     yaxis_title="Relative Abundance Range (AUC)",
+# )
+
+# st.plotly_chart(fig, use_container_width=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+top_subjects = (
+    sums["Subject ID"]
+    .value_counts()
+    .head(3)
+    .index.tolist()
+)
+
+df_plot = sums[sums["Subject ID"].isin(top_subjects)].copy()
+df_plot["DOL"] = pd.to_numeric(df_plot["DOL"], errors="coerce")
+
+
+fig = px.line(
+    df_plot.sort_values(["Subject ID", "DOL"]),
+    x="DOL",
+    y="HMO_sum",
+    color="Subject ID",
+    markers=True,
+    title="Total HMO Concentration Over Time (Top 3 Subjects)"
+)
+
+fig.update_layout(
+    plot_bgcolor="#1E1E1E",
+    paper_bgcolor="#1E1E1E",
+    font_color="white",
+    xaxis_title="Day of Life (DOL)",
+    yaxis_title="Total HMO Concentration"
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+
 
 
 ####SPECIFICS HMO x META#####################
-
+st.subheader("HMO Relative Abundance Over Time (Longitudinal Subjects)")
 col1, col2 = st.columns(2)
 
 with col1:

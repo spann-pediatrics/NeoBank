@@ -95,7 +95,7 @@ fig_aliquots = px.bar(
     y="Total Aliquots",
     text="Total Aliquots",
     color="Total Aliquots",
-    color_continuous_scale="Greys"
+    color_continuous_scale="Reds"
     )
 
 fig_aliquots.update_layout(
@@ -115,7 +115,7 @@ st.plotly_chart(fig_aliquots, use_container_width=True)
 st.subheader("Milk & Nutrition Details")
 
 milk_vars = [
-    "Scavenged/Fresh?",
+    # "Scavenged/Fresh?",
     "MBM/DMB?",
     "HMF Y/N?",
     "TPN Y/N?",
@@ -135,7 +135,7 @@ if selected_milk_var:
     # Bar chart
     st.bar_chart(value_counts)
 
-    st.subheader("Additional Notes Overview")
+    st.subheader("Milk Collection Notes")
 
     # Count the occurrences of each unique note (excluding NaN)
     notes_counts = df["Additional Comments"].dropna().value_counts()
@@ -293,82 +293,91 @@ fig_source.update_layout(
 )
 
 
-# ---- Secretor Status Pie Chart ----
-status_counts = df["Secretor Status"].value_counts().reset_index()
-status_counts.columns = ["Secretor Status", "Count"]
+# ---- Secretor Status Chart -------------
 
-fig_pie = px.pie(
-    status_counts,
-    names="Secretor Status",
-    values="Count",
-    title="Secretor Status Classification",
-    color="Secretor Status",
-    color_discrete_map= secretor_colors
+# Count combinations of MBM/DMB and Secretor Status
+combo_counts = (
+    df.groupby(["MBM/DMB?", "Secretor Status"])
+    .size()
+    .reset_index(name="Sample Count")
 )
 
-fig_pie.update_layout(
-    title="Secretor Status Classification",
+# Plots
+fig2 = px.bar(
+    combo_counts,
+    x="MBM/DMB?",
+    y="Sample Count",
+    color="Secretor Status",
+    barmode="group",
+    text="Sample Count",
+    color_discrete_map=secretor_colors,
+    title="MBM/DBM Type by Secretor Status - Per Sample"
+)
+
+fig2.update_layout(
     plot_bgcolor="#1E1E1E",
     paper_bgcolor="#1E1E1E",
     font_color="white"
 )
 
-# ---- Layout Section ----
-col1, col2 = st.columns([1,1])
-
-with col1:
-    # st.markdown("**Milk Collection Type**")
-    st.plotly_chart(fig_source, use_container_width=True)
-
-
-with col2:
-    # st.markdown("**Secretor Status**")
-    st.plotly_chart(fig_pie, use_container_width=True)
+st.plotly_chart(fig2, use_container_width=True)
 
 
 # ---- Table for Secretor Status x Sample Source Groups ----
 # Create a pivot table for counts by Secretor Status (rows) and Sample Source (columns)
 # Prepare data
-count_df = (
-    df[df["Sample Source"].isin(["Residual", "Scavenged"])]
-    .groupby(["Secretor Status", "Sample Source"])
+
+# Filter for relevant sample sources
+filtered_df = df[df["Sample Source"].isin(["Residual", "Scavenged"])]
+
+# Group and count
+grouped = (
+    filtered_df
+    .groupby(["MBM/DMB?", "Secretor Status", "Sample Source"])
     .size()
     .reset_index(name="Count")
 )
 
-# Plot
+# Plot with MBM/DBM? on x-axis
 fig = px.bar(
-    count_df,
-    x="Secretor Status",
+    grouped,
+    x="MBM/DMB?",
     y="Count",
-    color="Sample Source",
-    barmode="group",
+    color="Secretor Status",          # group by Secretor
+    barmode="group",                  # side-by-side bars
+    facet_col="Sample Source",        # one facet per sample source
     text="Count",
-    title="Sample Counts by Secretor Status and Sample Source",
-    color_discrete_map=sample_source_colors
+    title="Sample Counts by Milk Type, Secretor Status, and Sample Source",
+    color_discrete_map=secretor_colors
 )
 
 fig.update_layout(
     plot_bgcolor="#1E1E1E",
     paper_bgcolor="#1E1E1E",
-    font_color="white"
+    font_color="white",
+    legend_title="Secretor Status"
 )
 
 st.plotly_chart(fig, use_container_width=True)
 
 
+
+# ---- HMO Relative Abundance ----=---------------------------------------
 # ---- Milk Type ----
 group1_options = sorted(df["Secretor Status"].dropna().unique())
-group2_options = sorted(df["Sample Source"].dropna().unique())
+group2_options = ['Residual', 'Scavenged']
+group3_options = sorted(df["MBM/DMB?"].dropna().unique())  
 
 selected_secretor = st.selectbox("Select Secretor Status", group1_options, key="secretor_group")
 selected_source = st.selectbox("Select Sample Source", group2_options, key="sample_source")
+selected_milk = st.selectbox("Select Milk Type", group3_options, key="milk_type")
 
 
 filtered_df = df[
     (df["Secretor Status"] == selected_secretor) &
-    (df["Sample Source"] == selected_source)
-]
+    (df["Sample Source"] == selected_source) &
+    (df["MBM/DMB?"] == selected_milk)  
+    ]
 
 hmo_ranges = filtered_df[hmo_columns].agg(["min", "max"]).T
 hmo_ranges["Range"] = hmo_ranges["max"] - hmo_ranges["min"]
@@ -381,7 +390,7 @@ fig = px.bar(
     text="Range",
     color="Range",
     color_continuous_scale="Reds",
-    title=f"HMO Relative Abundance for {selected_secretor} + {selected_source}"
+    title=f"HMO Relative Abundance for {selected_secretor} + {selected_source} + {selected_milk} Samples"
 )
 
 fig.update_layout(
@@ -445,6 +454,15 @@ selected_hmo = st.selectbox("Select an HMO to plot", hmo_columns, key="hmo")
 df_long["Iron Size"] = df_long["Iron Y/N"].map({"Y": 20, "N": 10}).fillna(10)
 df_long["DOL"] = pd.to_numeric(df_long["DOL"], errors="coerce")
 
+
+df_long["CGA_cat"] = pd.cut(
+    df_long["CGA"],
+    bins=[0, 32, 34, 36, 45],
+    labels=["Very Preterm", "Moderate Preterm", "Late Preterm", "Term"],
+    include_lowest=True
+)
+
+
 subject_df = df_long[df_long["Subject ID"] == selected_subject].copy()
 
 mbm_colors = {
@@ -460,15 +478,6 @@ symbol_map = {
     "Other": "cross"
 }
 
-size_map = {
-    "Very Preterm": 10,
-    "Moderate Preterm": 20,
-    "Late Preterm": 30,
-    "Term": 40
-}
-
-subject_df["CGA_Size"] = subject_df["CGA_cat"].map(size_map)
-
 
 # Plot
 fig = px.scatter(
@@ -477,7 +486,6 @@ fig = px.scatter(
     y=selected_hmo,
     color="MBM/DMB?",
     symbol="Sample Source",
-    size="CGA_Size",
     hover_data={
         "TPN Y/N?": True,
         "HMF Y/N?": True,
@@ -491,6 +499,7 @@ fig = px.scatter(
     color_discrete_map=mbm_colors
 )
 
+fig.update_traces(marker=dict(size=15))
 fig.update_layout(
     plot_bgcolor="#1E1E1E",
     paper_bgcolor="#1E1E1E",

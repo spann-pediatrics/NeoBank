@@ -4,6 +4,7 @@ import numpy as np
 import seaborn as sns
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 # Set up the dashboard
 st.set_page_config(page_title="NeoBank HMO Dashboard", layout="wide")
@@ -409,15 +410,26 @@ st.subheader("HMO Relative Abundance Over Time (Longitudinal Subjects)")
 
 ####SPECIFICS HMO x META#####################
 
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+
+# ---------- SETUP ----------
+
+# Clean column names
+df.columns = df.columns.str.strip()
+
+# Legend: Color + Symbol
 col1, col2 = st.columns(2)
 
 with col1:
     st.markdown("""
     <div style="background-color: #333; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
         <strong style="color:white;">Color (MBM/DBM?)</strong><br>
-        🩷 MBM<br>
+        🍵 MBM<br>
         ⚪ DBM<br>
-        🟪 MBM + DBM<br>
+        💚 MBM + DBM<br>
         💚 Other
     </div>
     """, unsafe_allow_html=True)
@@ -431,94 +443,24 @@ with col2:
     </div>
     """, unsafe_allow_html=True)
 
-
-
-# Clean column names
-df.columns = df.columns.str.strip()
-
-# Define HMO columns
-hmo_columns = ["2FL", "DFLAC", "3SL", "6SL", "LNT", "LNnT", "LNFPI",
-               "LNFPII", "LNFPIII", "LSTc", "DFLNT", "DSLNT", 
-               "DFLNH", "FDSLNH", "DSLNH"]
-
-# Filter to subjects with > 3 timepoints
-subject_counts = df["Subject ID"].value_counts()
-longitudinal_subjects = subject_counts[subject_counts > 3].index.tolist()
-df_long = df[df["Subject ID"].isin(longitudinal_subjects)].copy()
-
-# Dropdowns with unique keys to prevent conflicts
-selected_subject = st.selectbox("Select a Subject ID", sorted(df_long["Subject ID"].unique()), key="subject")
-selected_hmo = st.selectbox("Select an HMO to plot", hmo_columns, key="hmo")
-
-# Preprocessing
-df_long["Iron Size"] = df_long["Iron Y/N"].map({"Y": 20, "N": 10}).fillna(10)
-df_long["DOL"] = pd.to_numeric(df_long["DOL"], errors="coerce")
-
-
-df_long["CGA_cat"] = pd.cut(
-    df_long["CGA"],
-    bins=[0, 32, 34, 36, 45],
-    labels=["Very Preterm", "Moderate Preterm", "Late Preterm", "Term"],
-    include_lowest=True
-)
-
-
-subject_df = df_long[df_long["Subject ID"] == selected_subject].copy()
-
+# Color and symbol maps
 mbm_colors = {
-    "MBM": "#E24ADF",     # pink
-    "DBM": "#F4F4F4",     # white
-    "MBM + DBM": "#C2A4EC", # purple
-    "Other": "#959191"    # Fallback (optional)
+    "MBM": "#E24ADF",
+    "DBM": "#F4F4F4",
+    "MBM + DBM": "#C2A4EC",
+    "Other": "#959191"
 }
 
 symbol_map = {
-    "Residual": "triangle-up",  # or "circle", "diamond", "square", "triangle-up", etc.
-    "Scavenged": "circle",     # or "diamond", "square", "triangle-up", etc.
+    "Residual": "triangle-up",
+    "Scavenged": "circle",
     "Other": "cross"
 }
 
-
-# Plot
-fig = px.scatter(
-    subject_df,
-    x="DOL",
-    y=selected_hmo,
-    color="MBM/DMB?",
-    symbol="Sample Source",
-    hover_data={
-        "TPN Y/N?": True,
-        "HMF Y/N?": True,
-        "Iron Y/N": True,
-        "CGA": True,
-        "CGA_cat": True,
-        "Sample Source": True
-    },
-    title=f"{selected_hmo} over Time for {selected_subject}",
-    symbol_map=symbol_map,
-    color_discrete_map=mbm_colors
-)
-
-fig.update_traces(marker=dict(size=15))
-fig.update_layout(
-    plot_bgcolor="#1E1E1E",
-    paper_bgcolor="#1E1E1E",
-    font_color="white"
-)
-
-st.plotly_chart(fig, use_container_width=True)
-
-
-
-
-########## Growth Outcomes by HMO Composition #############
-
-import plotly.graph_objects as go
-
-# Filter and prepare
-subject_df = df[df["Subject ID"] == selected_subject].copy()
-subject_df["DOL"] = pd.to_numeric(subject_df["DOL"], errors="coerce")
-subject_df = subject_df.sort_values("DOL")
+# HMO and Growth Columns
+hmo_columns = ["2FL", "DFLAC", "3SL", "6SL", "LNT", "LNnT", "LNFPI",
+               "LNFPII", "LNFPIII", "LSTc", "DFLNT", "DSLNT", 
+               "DFLNH", "FDSLNH", "DSLNH"]
 
 growth_metric_options = {
     "Weight": "Current Weight",
@@ -526,39 +468,80 @@ growth_metric_options = {
     "Head Circumference": "Current HC"
 }
 
-selected_growth_label = st.selectbox("Select Growth Metric to Compare", list(growth_metric_options.keys()))
+# Filter subjects with >3 timepoints
+subject_counts = df["Subject ID"].value_counts()
+longitudinal_subjects = subject_counts[subject_counts > 3].index.tolist()
+
+# Dropdowns
+selected_subject = st.selectbox("Select a Subject ID", sorted(longitudinal_subjects))
+selected_hmo = st.selectbox("Select an HMO to plot", hmo_columns)
+selected_growth_label = st.selectbox("Select Growth Metric", list(growth_metric_options.keys()))
 selected_growth_column = growth_metric_options[selected_growth_label]
 
+# Prepare subject data
+subject_df = df[df["Subject ID"] == selected_subject].copy()
+subject_df["DOL"] = pd.to_numeric(subject_df["DOL"], errors="coerce")
+subject_df = subject_df.sort_values("DOL")
 
+# CGA Binning
+subject_df["CGA_cat"] = pd.cut(
+    subject_df["CGA"],
+    bins=[0, 32, 34, 36, 45],
+    labels=["Very Preterm", "Moderate Preterm", "Late Preterm", "Term"],
+    include_lowest=True
+)
+
+# ---------- BUILD FIG ----------
 fig = go.Figure()
 
-# Add growth metric (e.g., weight) to primary y-axis
+# Growth line
 fig.add_trace(go.Scatter(
     x=subject_df["DOL"],
     y=subject_df[selected_growth_column],
     mode="lines+markers",
-    name="Weight (g)",
-    marker=dict(color="#4A90E2"),
+    name=f"{selected_growth_label}",
+    marker=dict(color="#4A90E2", size=10),
     yaxis="y1"
 ))
 
-# Add 2'FL to secondary y-axis
-fig.add_trace(go.Scatter(
-    x=subject_df["DOL"],
-    y=subject_df["2FL"],
-    mode="lines+markers",
-    name="2'FL (AUC)",
-    marker=dict(color="#F94A29"),
-    yaxis="y2"
-))
+# HMO points by MBM/DBM and Sample Source
+for mbm_type in subject_df["MBM/DMB?"].dropna().unique():
+    for sample_source in subject_df["Sample Source"].dropna().unique():
+        filtered = subject_df[
+            (subject_df["MBM/DMB?"] == mbm_type) &
+            (subject_df["Sample Source"] == sample_source)
+        ]
+        fig.add_trace(go.Scatter(
+            x=filtered["DOL"],
+            y=filtered[selected_hmo],
+            mode="markers",
+            name=f"{mbm_type} / {sample_source}",
+            marker=dict(
+                color=mbm_colors.get(mbm_type, "#959191"),
+                symbol=symbol_map.get(sample_source, "circle"),
+                size=14
+            ),
+            yaxis="y2",
+            hovertext=[
+                f"TPN: {t}<br>HMF: {h}<br>CGA: {c}<br>Iron: {i}<br>Source: {s}" 
+                for t, h, c, i, s in zip(
+                    filtered["TPN Y/N?"],
+                    filtered["HMF Y/N?"],
+                    filtered["CGA"],
+                    filtered["Iron Y/N"],
+                    filtered["Sample Source"]
+                )
+            ],
+            hoverinfo="text"
+        ))
 
-# Update layout for dual y-axis
+# Layout
 fig.update_layout(
-    title="Weight and 2'FL Over Time",
+    title=f"{selected_growth_label} and {selected_hmo} Over Time for {selected_subject}",
     xaxis=dict(title="Day of Life (DOL)"),
-    yaxis=dict(title="Weight (g)", side="left"),
+    yaxis=dict(title=selected_growth_label, side="left"),
     yaxis2=dict(
-        title="2'FL (AUC)",
+        title=f"{selected_hmo} (AUC)",
         overlaying="y",
         side="right"
     ),

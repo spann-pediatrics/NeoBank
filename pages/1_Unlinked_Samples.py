@@ -166,7 +166,7 @@ st.subheader("Growth Metric Overview")
 #############-----------------
 
 
-# Filter subjects with >2 timepoints
+# Filter subjects with >3 timepoints
 subject_counts = df["Subject ID"].value_counts()
 longitudinal_subjects = subject_counts[subject_counts > 3].index.tolist()
 
@@ -501,6 +501,67 @@ fig = px.scatter(
 
 fig.update_traces(marker=dict(size=15))
 fig.update_layout(
+    plot_bgcolor="#1E1E1E",
+    paper_bgcolor="#1E1E1E",
+    font_color="white"
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+
+
+
+########## Growth Outcomes by HMO Composition #############
+
+import plotly.graph_objects as go
+
+# Filter and prepare
+subject_df = df[df["Subject ID"] == selected_subject].copy()
+subject_df["DOL"] = pd.to_numeric(subject_df["DOL"], errors="coerce")
+subject_df = subject_df.sort_values("DOL")
+
+growth_metric_options = {
+    "Weight": "Current Weight",
+    "Height": "Current Height",
+    "Head Circumference": "Current HC"
+}
+
+selected_growth_label = st.selectbox("Select Growth Metric to Compare", list(growth_metric_options.keys()))
+selected_growth_column = growth_metric_options[selected_growth_label]
+
+
+fig = go.Figure()
+
+# Add growth metric (e.g., weight) to primary y-axis
+fig.add_trace(go.Scatter(
+    x=subject_df["DOL"],
+    y=subject_df[selected_growth_column],
+    mode="lines+markers",
+    name="Weight (g)",
+    marker=dict(color="#4A90E2"),
+    yaxis="y1"
+))
+
+# Add 2'FL to secondary y-axis
+fig.add_trace(go.Scatter(
+    x=subject_df["DOL"],
+    y=subject_df["2FL"],
+    mode="lines+markers",
+    name="2'FL (AUC)",
+    marker=dict(color="#F94A29"),
+    yaxis="y2"
+))
+
+# Update layout for dual y-axis
+fig.update_layout(
+    title="Weight and 2'FL Over Time",
+    xaxis=dict(title="Day of Life (DOL)"),
+    yaxis=dict(title="Weight (g)", side="left"),
+    yaxis2=dict(
+        title="2'FL (AUC)",
+        overlaying="y",
+        side="right"
+    ),
     plot_bgcolor="#1E1E1E",
     paper_bgcolor="#1E1E1E",
     font_color="white"

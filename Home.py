@@ -48,6 +48,20 @@ with st.expander("🧾 Column Descriptions"):
         st.markdown(f"**{col}**: {desc}")
 
 
+####### Ability to download specific data (filter via subject ID if longitudinal) -----
+st.subheader("Individual Subject Data Exploration")
+st.write("Select a Subject ID to explore their data, click top right 'download' for CSV file(s):")
+
+subject_counts = df["Subject ID"].value_counts()
+eligible_subjects = subject_counts[subject_counts > 3].index.tolist()
+
+
+selected_subject = st.selectbox("Select a Subject ID (with >3 timepoints)", sorted(eligible_subjects))
+
+
+subject_df = df[df["Subject ID"] == selected_subject].copy()
+st.dataframe(subject_df)
+
 
 
 df2 = pd.read_excel("cleaned_linkedmeta_updated.xlsx")
@@ -57,9 +71,9 @@ st.dataframe(df2.head(10))  # Show only the first 10 rows for now
 # Convert to CSV for download
 csv = df2.to_csv(index=False)
 
-st.download_button(
-    label="📥 Download Full Dataset (CSV)",
-    data=csv,
-    file_name="Linked_Meta.csv",
-    mime="text/csv"
-)
+# st.download_button(
+#     label="📥 Download Full Dataset (CSV)",
+#     data=csv,
+#     file_name="Linked_Meta.csv",
+#     mime="text/csv"
+# )

@@ -25,7 +25,7 @@ num_samples = df["sample_unique_id"].nunique()
 def metric_card(title, value, icon=""):
     st.markdown(f"""
         <div style="
-            background-color: #262730;
+            background-color: #5e6077ff;
             padding: 1rem;
             border-radius: 10px;
             margin-bottom: 1rem;
@@ -65,15 +65,15 @@ fig = px.bar(
     y="Sample Count",
     text="Sample Count",
     color="Sample Count",
-    color_continuous_scale="Blues"
+    color_continuous_scale="Teal"
 )
 
 fig.update_layout(
     xaxis_title="Subject ID",
     yaxis_title="Number of Samples",
-    plot_bgcolor="#1E1E1E",
-    paper_bgcolor="#1E1E1E",
-    font_color="white"
+    plot_bgcolor="#ffffff",
+    paper_bgcolor="#ffffff",
+    font_color="#000000"
 )
 
 st.plotly_chart(fig, use_container_width=True)
@@ -96,15 +96,15 @@ fig_aliquots = px.bar(
     y="Total Aliquots",
     text="Total Aliquots",
     color="Total Aliquots",
-    color_continuous_scale="Reds"
+    color_continuous_scale="Teal"
     )
 
 fig_aliquots.update_layout(
     xaxis_title="Subject ID",
     yaxis_title="Number of Aliquots",
-    plot_bgcolor="#1E1E1E",
-    paper_bgcolor="#1E1E1E",
-    font_color="white"
+    plot_bgcolor="#ffffff",
+    paper_bgcolor="#ffffff",
+    font_color="black"
     )
 
 st.plotly_chart(fig_aliquots, use_container_width=True)
@@ -152,9 +152,9 @@ if selected_milk_var:
         )
         fig_notes.update_traces(textinfo='percent+label')
         fig_notes.update_layout(
-            plot_bgcolor="#1E1E1E",
-            paper_bgcolor="#1E1E1E",
-            font_color="white"
+            plot_bgcolor="#ffffff",
+            paper_bgcolor="#ffffff",
+            font_color="black"
         )
         st.plotly_chart(fig_notes, use_container_width=True)
     else:
@@ -184,7 +184,7 @@ subject_df = subject_df.sort_values("DOL ")  # 👈 ensures line plots follow co
 num_longitudinal_subjects = len(longitudinal_subjects)
 st.markdown(f"""
     <div style="
-        background-color: #444;
+        background-color: #5e6077ff;
         padding: 1rem;
         border-radius: 10px;
         margin-bottom: 1rem;
@@ -204,13 +204,13 @@ col1, col2, col3 = st.columns(3)
 # Standard figure style function
 def make_growth_plot(x, y, title):
     fig, ax = plt.subplots(figsize=(4, 3))
-    fig.patch.set_facecolor('#1E1E1E')
-    ax.set_facecolor('#1E1E1E')
-    ax.plot(subject_df[x], subject_df[y], marker="o", color="#4A90E2")
-    ax.set_xlabel(x, color='white')
-    ax.set_ylabel(y, color='white')
-    ax.set_title(title, color='white')
-    ax.tick_params(colors='white')
+    fig.patch.set_facecolor('#ffffff')
+    ax.set_facecolor('#ffffff')
+    ax.plot(subject_df[x], subject_df[y], marker="o", color="#1B4A81")
+    ax.set_xlabel(x, color='black')
+    ax.set_ylabel(y, color='black')
+    ax.set_title(title, color='black')
+    ax.tick_params(colors='black')
 
     # Add tick marks every 2 DOL units
     x_vals = subject_df[x].dropna().sort_values()
@@ -241,7 +241,7 @@ st.title("Unlinked HMO Overview")
 with st.container():
     st.markdown("""
         <div style="
-            background-color: #262730;
+            background-color: #5e6077ff;
             padding: 1rem;
             border-radius: 10px;
             margin-bottom: 1.5rem;
@@ -267,8 +267,8 @@ sample_source_colors = {
 }
 
 secretor_colors = {
-    "Secretor": "#8ecfff",        # light blue
-    "Non-Secretor": "#ffffff"     # white
+    "Secretor": "#357b8d",        # light blue
+    "Non-Secretor": "#999ad2"     # white
 }
 
 
@@ -288,9 +288,10 @@ fig_source = px.pie(
 )
 
 fig_source.update_layout(
-    plot_bgcolor="#1E1E1E",
-    paper_bgcolor="#1E1E1E",
-    font_color="white"
+    template =  "simple_white",
+    plot_bgcolor="#ffffff",
+    paper_bgcolor="#ffffff",
+    font_color="black"
 )
 
 
@@ -316,9 +317,10 @@ fig2 = px.bar(
 )
 
 fig2.update_layout(
-    plot_bgcolor="#1E1E1E",
-    paper_bgcolor="#1E1E1E",
-    font_color="white"
+    template =  "simple_white",
+    plot_bgcolor="#ffffff",
+    paper_bgcolor="#ffffff",
+    font_color="black"
 )
 
 st.plotly_chart(fig2, use_container_width=True)
@@ -353,9 +355,9 @@ fig = px.bar(
 )
 
 fig.update_layout(
-    plot_bgcolor="#1E1E1E",
-    paper_bgcolor="#1E1E1E",
-    font_color="white",
+    plot_bgcolor="#ffffff",
+    paper_bgcolor="#ffffff",
+    font_color="black",
     legend_title="Secretor Status"
 )
 
@@ -395,9 +397,9 @@ fig = px.bar(
 )
 
 fig.update_layout(
-    plot_bgcolor="#1E1E1E",
-    paper_bgcolor="#1E1E1E",
-    font_color="white",
+    plot_bgcolor="#ffffff",
+    paper_bgcolor="#ffffff",
+    font_color="black",
     xaxis_title="",
     yaxis_title="Relative Abundance Range (AUC)",
 )
@@ -425,18 +427,15 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.markdown("""
-    <div style="background-color: #333; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
-        <strong style="color:white;">Color (MBM/DBM?)</strong><br>
-        🍵 MBM<br>
-        ⚪ DBM<br>
-        💚 MBM + DBM<br>
-        💚 Other
+    <div style="background-color: #6f768fff; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+        <strong style="color:white;">Color (Type of Milk) </strong><br>
+        * Color codes is based on the type of milk given to infant
     </div>
     """, unsafe_allow_html=True)
 
 with col2:
     st.markdown("""
-    <div style="background-color: #333; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+    <div style="background-color: #6f768fff; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
         <strong style="color:white;">Shape (Sample Source)</strong><br>
         ● Residual<br>
         × Scavenged
@@ -446,9 +445,9 @@ with col2:
 # Color and symbol maps
 mbm_colors = {
     "MBM": "#E24ADF",
-    "DBM": "#F4F4F4",
+    "DBM": "#817287",
     "MBM + DBM": "#C2A4EC",
-    "Other": "#959191"
+    "Other": "#1C1C1C"
 }
 
 symbol_map = {
@@ -500,7 +499,7 @@ fig.add_trace(go.Scatter(
     y=subject_df[selected_growth_column],
     mode="lines+markers",
     name=f"{selected_growth_label}",
-    marker=dict(color="#4A90E2", size=10),
+    marker=dict(color="#1B4A81", size=10),
     yaxis="y1"
 ))
 
@@ -545,9 +544,9 @@ fig.update_layout(
         overlaying="y",
         side="right"
     ),
-    plot_bgcolor="#1E1E1E",
-    paper_bgcolor="#1E1E1E",
-    font_color="white"
+    plot_bgcolor="#ffffff",
+    paper_bgcolor="#ffffff",
+    font_color="black"
 )
 
 st.plotly_chart(fig, use_container_width=True)

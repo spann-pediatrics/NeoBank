@@ -1,6 +1,11 @@
 import streamlit as st
 import pandas as pd
 
+st.set_page_config(
+    page_title="Raw Data"   # appears in browser tab
+             # optional icon
+)
+
 st.title("Raw Data")
 
 # Load the data
@@ -62,18 +67,3 @@ selected_subject = st.selectbox("Select a Subject ID (with >3 timepoints)", sort
 subject_df = df[df["Subject ID"] == selected_subject].copy()
 st.dataframe(subject_df)
 
-
-
-df2 = pd.read_excel("cleaned_linkedmeta_updated.xlsx")
-st.subheader("📄 LINKED - Raw Data Preview")
-st.dataframe(df2.head(10))  # Show only the first 10 rows for now
-
-# Convert to CSV for download
-csv = df2.to_csv(index=False)
-
-# st.download_button(
-#     label="📥 Download Full Dataset (CSV)",
-#     data=csv,
-#     file_name="Linked_Meta.csv",
-#     mime="text/csv"
-# )

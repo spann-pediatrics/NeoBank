@@ -1,10 +1,36 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(
-    page_title="Raw Data"   # appears in browser tab
-             # optional icon
-)
+
+st.title("NeoBANK Dashboard 2025")
+
+with st.container():
+    st.markdown("""
+        <div style="
+            background-color: #e8f4ff;
+            padding: 1.25rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            color: #000000;
+            font-size: 1rem;
+            line-height: 1.5;
+        ">
+        <h3 style="margin-top:0;">About This Dashboard:</h3>
+        <p>
+        This dashboard is a visualzing human milk components from NeoBANK samples.  
+        </p>
+        <p>
+        With only 34 subjects in this dataset, results are preliminary — but the goal is to show the 
+        <strong>possibilities</strong>:  
+        <ul>
+            <li>Defining human milk oligosaccharide (HMO) composition </li>
+            <li>Visualizing how HMOs may support individualized nutrition</li>
+            <li>Identifying trends in NICU settings</li>
+        </ul>
+        </p>
+        </div>
+    """, unsafe_allow_html=True)
+
 
 st.title("Raw Data")
 

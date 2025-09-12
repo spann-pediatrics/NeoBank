@@ -152,7 +152,7 @@ milk_vars = [
     "MBM/DMB?",
     "HMF Y/N?",
     "TPN Y/N?",
-    'Iron Y/N'
+    'Iron Y/N?'
 ]
 
 selected_milk_var = st.selectbox("Select a milk-related variable to explore:", milk_vars)
@@ -280,11 +280,13 @@ with st.container():
             color: white;
         ">
             <strong>Summary:</strong><br>
-        Each milk sample was analyzed for <strong>15 different human milk oligosaccharides (HMOs)</strong> using HPLC. 
+        - Each milk sample was analyzed for <strong>15 different human milk oligosaccharides (HMOs)</strong> using HPLC. 
                 <p>
-        Results are expressed as <em>area under the curve (AUC)</em> values.  
+        - 28 out of the 34 subjects received MBM (mother's own milk).
                 </p>
-        <strong>2’FL</strong> is used to classify <em>secretor status</em> with a threshold of 5 million AUC.
+        - Results are expressed as <em>area under the curve (AUC)</em> values.  
+                </p>
+        - <strong>2’FL</strong> is used to classify <em>secretor status</em> with a threshold of 5 million AUC.
         </div>
     """, unsafe_allow_html=True)
 
@@ -308,153 +310,89 @@ secretor_colors = {
 }
 
 
-# ---- Sample Source Counts ----
-# Count values in the Sample Source column
-# Deduplicate by subject → take the first non-null record for each subject
-df_unique = (
-    df.sort_values("Subject ID")  # keep stable order
-      .groupby("Subject ID", as_index=False)
-      .first()   # first row for each subject
-)
-
-# Now df_unique has exactly 34 rows (one per subject)
-# Count secretor status
-secretor_counts = (
-    df_unique["Secretor Status"]
-      .value_counts()
-      .rename_axis("Secretor Status")
-      .reset_index(name="Unique Subjects")
-)
-
-# Plot pie chart
-fig = px.pie(
-    secretor_counts,
-    names="Secretor Status",
-    values="Unique Subjects",
-    title="Secretor Status (by Unique Subjects)",
-    color="Secretor Status",
-    color_discrete_map=secretor_colors
-)
-
-fig.update_layout(
-    template="simple_white",
-    plot_bgcolor="#ffffff",
-    paper_bgcolor="#ffffff",
-    font_color="black"
-)
-
-st.plotly_chart(fig, use_container_width=True, theme=None)
-
-# Optional sanity check
-st.write("Unique Subject IDs:", df["Subject ID"].nunique())
 
 
+##############################################################
 # ---- Table for Secretor Status x Sample Source Groups ----
 # Create a pivot table for counts by Secretor Status (rows) and Sample Source (columns)
 # Prepare data
 
-st.subheader("Secretor Status by Sample Source")
+st.subheader("MOM Secretor Status by Sample Source")
 
-view_unique = st.toggle("Count unique subjects (not samples)", value=False)
-show_percent = st.toggle("Show percentages instead of counts", value=False)
 
-if view_unique:
-    # one row per subject+source (if a subject has both sources, they can appear once in each source)
-    df_unique = (
-        df.sort_values(["Subject ID"])
-          .dropna(subset=["Secretor Status", "Sample Source"])
-          .drop_duplicates(subset=["Subject ID", "Sample Source"])
-    )
-    grouped = (
-        df_unique.groupby(["Sample Source", "Secretor Status"])
-                 .size()
-                 .reset_index(name="Count")
-    )
-else:
-    # raw sample counts
-    grouped = (
-        df.dropna(subset=["Secretor Status", "Sample Source"])
-          .groupby(["Sample Source", "Secretor Status"])
-          .size()
-          .reset_index(name="Count")
-    )
+status_check = pd.read_excel("Secretor_status_check.xlsx")
 
-if show_percent:
-    grouped["Total"] = grouped.groupby("Sample Source")["Count"].transform("sum")
-    grouped["Percent"] = (grouped["Count"] / grouped["Total"] * 100).round(1)
-    y_col = "Percent"
-    y_title = "Percent of Samples" if not view_unique else "Percent of Subjects"
-    text_col = "Percent"
-else:
-    y_col = "Count"
-    y_title = "Number of Samples" if not view_unique else "Number of Subjects"
-    text_col = "Count"
+# Box showing number of unique subject IDs that received MBM
+num_mbm_subjects = status_check.shape[0]
+st.markdown(f"""
+    <div style="
+        background-color: #5e6077ff;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+        box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        color: white;
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+    ">
+        {num_mbm_subjects} Unique Subject IDs that received MBM
+    </div>
+""", unsafe_allow_html=True)
 
-fig_ss = px.bar(
-    grouped,
-    x="Sample Source",
-    y=y_col,
+
+# Bar chart: Secretor Status counts (unique subjects)
+secretor_counts = status_check["secretorstatus_mom"].value_counts().reset_index()
+secretor_counts.columns = ["Secretor Status", "Count"]
+
+fig_secretor = px.bar(
+    secretor_counts,
+    x="Secretor Status",
+    y="Count",
+    text="Count",
     color="Secretor Status",
-    barmode="group",              # use "stack" if you prefer stacked bars
-    text=text_col,
     color_discrete_map=secretor_colors,
-    title="Secretor Status by Sample Source"
+    title="Count of Secretor vs Non-Secretor Subjects"
 )
 
-fig_ss.update_traces(textposition="outside", cliponaxis=False)
-
-fig_ss.update_layout(
+fig_secretor.update_traces(textposition="outside")
+fig_secretor.update_layout(
     template="simple_white",
     plot_bgcolor="#ffffff",
     paper_bgcolor="#ffffff",
     font_color="black",
-    yaxis_title=y_title,
-    xaxis_title="Sample Source",
-    legend_title="Secretor Status",
-    margin=dict(t=60, r=20, l=20, b=40)
+    yaxis_title="Number of Subjects",
+    xaxis_title="Secretor Status",
+    margin=dict(t=40, r=20, l=20, b=40)
 )
 
-st.plotly_chart(fig_ss, use_container_width=True, theme=None)
+st.plotly_chart(fig_secretor, use_container_width=True)
 
 
-
+# -------------------------------------------------------------------
+# Consistency of Secretor Status (per subject)
+# -------------------------------------------------------------------
 st.subheader("Secretor Status Consistency Across Timepoints")
 
-# Clean col names
-df.columns = df.columns.str.strip()
-
-# For each subject, check if secretor status ever changes
-status_change = (
-    df.groupby("Subject ID")["Secretor Status"]
-      .nunique()   # number of distinct statuses per subject
-      .reset_index(name="n_statuses")
-)
-
-status_change["Change Flag"] = status_change["n_statuses"].apply(
-    lambda x: "Changed" if x > 1 else "No Change"
-)
-
-# Count how many subjects in each category
+# Use the per-subject summary from status_check
 change_counts = (
-    status_change["Change Flag"]
-      .value_counts()
-      .rename_axis("Change Flag")
-      .reset_index(name="Subjects")
+    status_check["Change Flag"]
+    .value_counts()
+    .rename_axis("Change Flag")
+    .reset_index(name="Subjects")
 )
 
-# Plot
 fig_change = px.bar(
     change_counts,
     x="Change Flag",
     y="Subjects",
     text="Subjects",
     color="Change Flag",
-    color_discrete_map={"No Change": "#357b8d", "Changed": "#d97b7b"},
+    color_discrete_map={"No Change": "#081d02", "Changed": "#a19090"},
     title="Subjects with Stable vs Changed Secretor Status"
 )
 
 fig_change.update_traces(textposition="outside")
-
 fig_change.update_layout(
     template="simple_white",
     plot_bgcolor="#ffffff",
@@ -466,15 +404,14 @@ fig_change.update_layout(
 
 st.plotly_chart(fig_change, use_container_width=True, theme=None)
 
-# Optional: show which subjects changed
-changed_subjects = status_change[status_change["Change Flag"] == "Changed"]["Subject ID"].tolist()
+# Optional: list changed subjects
+changed_subjects = status_check.query("`Change Flag` == 'Changed'")["Subject ID"].tolist()
 if changed_subjects:
-    st.markdown(f"**Subjects with changed status:** {', '.join(changed_subjects)}")
+    st.markdown(f"**Subjects with changed status:** {', '.join(map(str, changed_subjects))}")
 else:
     st.markdown("✅ All subjects had consistent secretor status across timepoints.")
 
-
-
+# Explanatory box
 st.markdown("""
     <div style="
         background-color: #f9e6e6;
@@ -486,62 +423,215 @@ st.markdown("""
         box-shadow: 0 0 5px rgba(169,68,66,0.1);
     ">
         <strong>What does inconsistency in secretor status mean?</strong><br>
-        If a subject's secretor status changes across timepoints, this may indicate differences in milk given (MBM vs DBM) or potential sample mix-ups.
+        If a subject's secretor status changes across timepoints, this may indicate differences in milk given (MBM vs DBM) 
+        or potential sample mix-ups.
     </div>
 """, unsafe_allow_html=True)
 
 
 
+
+
+
+
+
+
+
+
+
+
 # ---- HMO Relative Abundance ----=---------------------------------------
 # ---- Milk Type ----
-group1_options = sorted(df["Secretor Status"].dropna().unique())
-group2_options = ['Residual', 'Scavenged']
-group3_options = sorted(df["MBM/DMB?"].dropna().unique())  
 
-selected_secretor = st.selectbox("Select Secretor Status", group1_options, key="secretor_group")
-selected_source = st.selectbox("Select Sample Source", group2_options, key="sample_source")
-selected_milk = st.selectbox("Select Milk Type", group3_options, key="milk_type")
+st.subheader("Number of Samples by Group")
 
-
-filtered_df = df[
-    (df["Secretor Status"] == selected_secretor) &
-    (df["Sample Source"] == selected_source) &
-    (df["MBM/DMB?"] == selected_milk)  
-    ]
-
-hmo_ranges = filtered_df[hmo_columns].agg(["min", "max"]).T
-hmo_ranges["Range"] = hmo_ranges["max"] - hmo_ranges["min"]
-hmo_ranges = hmo_ranges.reset_index().rename(columns={"index": "HMO"})
-
-fig = px.bar(
-    hmo_ranges,
-    x="HMO",
-    y="Range",
-    text="Range",
-    color="Range",
-    color_continuous_scale="Reds",
-    title=f"HMO AUC for {selected_secretor} + {selected_source} + {selected_milk} Samples"
+sample_counts = (
+    df.groupby(["Secretor Status", "Sample Source", "MBM/DMB?"])
+      .size()
+      .reset_index(name="Count")
 )
 
+fig_counts = px.bar(
+    sample_counts,
+    x="Sample Source",
+    y="Count",
+    color="Secretor Status",
+    facet_col="MBM/DMB?",
+    barmode="group",
+    title="Sample Counts per Group",
+    color_discrete_map=secretor_colors
+)
+
+# Remove "MBM/DMB?=" prefix in facet titles
+fig_counts.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+
+# Show axis titles only once
+# Remove x-axis labels completely
+fig_counts.update_xaxes(title_text="")
+
+fig_counts.update_yaxes(title_text="", showticklabels=True)  # clear all facet y-axis labels
+
+# Add single global axis titles
+fig_counts.update_layout(
+    xaxis_title="Sample Source",
+    yaxis_title="Number of Samples",
+    template="simple_white",
+    plot_bgcolor="#ffffff",
+    paper_bgcolor="#ffffff",
+    font_color="black"
+)
+
+st.plotly_chart(fig_counts, use_container_width=True, theme=None)
+
+
+##################
+st.subheader("Average HMO Relative Abundance by Sample Groups")
+
+# Dropdown options
+milk_type_options = sorted(df["MBM/DMB?"].dropna().unique())
+sample_source_options = ['Prepped in Milk Room', 'Scavenged']
+secretor_options = sorted(df["Secretor Status"].dropna().unique())
+
+# Dropdown widgets
+selected_milk = st.selectbox("Select Milk Type", milk_type_options, key="milk_type")
+selected_source = st.selectbox("Select Sample Source", sample_source_options, key="sample_source")
+selected_secretor = st.selectbox("Select Secretor Status", secretor_options, key="secretor_group")
+
+# Filter the data correctly
+filtered_df = df[
+    (df["MBM/DMB?"] == selected_milk) &
+    (df["Sample Source"] == selected_source) &
+    (df["Secretor Status"] == selected_secretor)
+]
+
+# --- Compute mean HMO values ---
+hmo_means = filtered_df[hmo_columns].mean().reset_index()
+hmo_means.columns = ["HMO", "Mean AUC"]
+
+fig = px.bar(
+    hmo_means,
+    x="HMO",
+    y="Mean AUC",
+    text="Mean AUC",
+    color="Mean AUC",
+    color_continuous_scale="Blues",
+    title=f"Average HMO Relative Abundance: {selected_milk} + {selected_source} + {selected_secretor}"
+)
+
+fig.update_traces(texttemplate='%{text:.2s}', textposition='outside')
 fig.update_layout(
     plot_bgcolor="#ffffff",
     paper_bgcolor="#ffffff",
     font_color="black",
     xaxis_title="",
-    yaxis_title="Area under the Curve (AUC)",
+    yaxis_title="Mean Area under the Curve (AUC)"
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+st.subheader("HMO Relative Abundance Over Time (Longitudinal Subjects)")
+
+
+
+
+####SPECIFICS HMO x META#####################
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+# --- Identify longitudinal subjects ---
+subject_counts = df["Subject ID"].value_counts()
+longitudinal_subjects = subject_counts[subject_counts >= 3].index.tolist()
+
+# Dropdown only shows longitudinal subjects
+subject_id = st.selectbox("Select a Subject ID", sorted(longitudinal_subjects))
+
+
+growth_metric = st.selectbox("Select Growth Metric", ["Current Weight", "Current Height", "Current HC"])
+
+# Filter and sort
+subject_df = df[df["Subject ID"] == subject_id].copy()
+subject_df = subject_df.sort_values("DOL")
+
+# --- Normalize HMO values ---
+hmo_values = subject_df[hmo_columns]
+hmo_norm = (hmo_values - hmo_values.min()) / (hmo_values.max() - hmo_values.min())
+hmo_norm["Sample #"] = range(1, len(hmo_norm) + 1)
+hmo_norm["DOL"] = subject_df["DOL"].values
+
+# Melt only HMO columns
+hmo_long = hmo_norm.melt(
+    id_vars=["Sample #","DOL"], 
+    value_vars=hmo_columns, 
+    var_name="HMO", 
+    value_name="Relative Abundance"
+)
+
+# --- Build figure ---
+fig = make_subplots(
+    rows=2, cols=1,
+    shared_xaxes=True,
+    row_heights=[0.7, 0.3],
+    vertical_spacing=0.05,
+    subplot_titles=[f"HMO Relative Abundance Heatmap for {subject_id}", f"{growth_metric} Over Time"]
+)
+
+# Heatmap with evenly spaced columns
+fig.add_trace(
+    go.Heatmap(
+        x=hmo_long["Sample #"],   # evenly spaced sample index
+        y=hmo_long["HMO"],
+        z=hmo_long["Relative Abundance"],
+        colorscale="Blues",
+        colorbar=dict(title="Relative Abundance")
+    ),
+    row=1, col=1
+)
+
+# Growth line
+# Growth line
+fig.add_trace(
+    go.Scatter(
+        x=subject_df["Sample #"] if "Sample #" in subject_df else list(range(1, len(subject_df)+1)),
+        y=subject_df[growth_metric],
+        mode="lines+markers",
+        name=growth_metric,
+        line=dict(color="black", width=2)
+    ),
+    row=2, col=1
+)
+
+
+# Replace x-axis ticks with actual DOL labels
+fig.update_xaxes(
+    tickmode="array",
+    tickvals=list(range(1, len(subject_df["DOL"]) + 1)),
+    ticktext=subject_df["DOL"].tolist(),
+    title="Day of Life"
+)
+
+# Layout polish
+fig.update_layout(
+    height=600,
+    template="simple_white"
 )
 
 st.plotly_chart(fig, use_container_width=True)
 
 
-st.subheader("HMO Relative Abundance Over Time (Longitudinal Subjects)")
 
 
-####SPECIFICS HMO x META#####################
 
-import streamlit as st
-import pandas as pd
-import numpy as np
+
+
+
+
+
+
+
+
+
+
+
 import plotly.graph_objects as go
 
 # ---------- SETUP ----------
@@ -549,26 +639,7 @@ import plotly.graph_objects as go
 # Clean column names
 df.columns = df.columns.str.strip()
 
-# Legend: Color + Symbol
-col1, col2 = st.columns(2)
-
-with col1:
-    st.markdown("""
-    <div style="background-color: #6f768fff; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
-        <strong style="color:white;">Color (Type of Milk) </strong><br>
-        * Color codes is based on the type of milk given to infant
-    </div>
-    """, unsafe_allow_html=True)
-
-with col2:
-    st.markdown("""
-    <div style="background-color: #6f768fff; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
-        <strong style="color:white;">Shape (Sample Source)</strong><br>
-        ● Residual<br>
-        × Scavenged
-    </div>
-    """, unsafe_allow_html=True)
-
+st.subheader ("Individual HMO Relative Abundance & Growth")
 # Color and symbol maps
 mbm_colors = {
     "MBM": "#E24ADF",
@@ -654,7 +725,7 @@ for mbm_type in subject_df["MBM/DMB?"].dropna().unique():
                     filtered["TPN Y/N?"],
                     filtered["HMF Y/N?"],
                     filtered["CGA"],
-                    filtered["Iron Y/N"],
+                    filtered["Iron Y/N?"],
                     filtered["Sample Source"]
                 )
             ],

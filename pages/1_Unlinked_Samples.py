@@ -45,7 +45,7 @@ with st.container():
     """, unsafe_allow_html=True)
 
 # Load the merged dataset
-df = pd.read_excel("Unlinked_Merged.xlsx")
+df = pd.read_excel("Cleaned Data/Unlinked_Merged.xlsx")
 
 ####--------------------------------------------------------------------------------------------------------------
 ############### Overview section ###############
@@ -294,7 +294,7 @@ with st.container():
     """, unsafe_allow_html=True)
 
 
-df = pd.read_excel("Unlinked_Merged.xlsx")
+
 
 # Get HMO columns
 hmo_columns = ['2FL','DFLAC', '3SL', '6SL', 'LNT', 'LNnT', 'LNFPI',

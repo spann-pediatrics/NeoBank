@@ -246,3 +246,4 @@ with col1:
     st.plotly_chart(fig_prop, use_container_width=True, theme=None)
 with col2:
     st.plotly_chart(fig_los, use_container_width=True, theme=None)
+

@@ -152,10 +152,10 @@ st.subheader("Milk & Nutrition Details")
 
 milk_vars = [
     # "Scavenged/Fresh?",
-    "MBM/DMB?",
-    "HMF Y/N?",
-    "TPN Y/N?",
-    'Iron Y/N?'
+    "Type of Milk",
+    "HMF",
+    "TPN",
+    'Iron'
 ]
 
 selected_milk_var = st.selectbox("Select a milk-related variable to explore:", milk_vars)
@@ -174,10 +174,10 @@ if selected_milk_var:
     st.subheader("Milk Collection Notes")
 
     # Count the occurrences of each unique note (excluding NaN)
-    notes_counts = df["Additional Comments"].dropna().value_counts()
+    notes_counts = df["Sample Source"].dropna().value_counts()
 
     if not notes_counts.empty:
-        st.write(notes_counts.to_frame().rename(columns={"Additional Comments": "Count"}))
+        st.write(notes_counts.to_frame().rename(columns={"Sample Source": "Count"}))
         # Pie chart using Plotly
         import plotly.express as px
         fig_notes = px.pie(
@@ -449,7 +449,7 @@ st.markdown("""
 st.subheader("Number of Samples by Group")
 
 sample_counts = (
-    df.groupby(["Secretor Status", "Sample Source", "MBM/DMB?"])
+    df.groupby(["Secretor Status", "Sample Source", "Type of Milk"])
       .size()
       .reset_index(name="Count")
 )
@@ -459,7 +459,7 @@ fig_counts = px.bar(
     x="Sample Source",
     y="Count",
     color="Secretor Status",
-    facet_col="MBM/DMB?",
+    facet_col="Type of Milk",
     barmode="group",
     title="Sample Counts per Group",
     color_discrete_map=secretor_colors
@@ -491,7 +491,7 @@ st.plotly_chart(fig_counts, use_container_width=True, theme=None)
 st.subheader("Average HMO Relative Abundance by Sample Groups")
 
 # Dropdown options
-milk_type_options = sorted(df["MBM/DMB?"].dropna().unique())
+milk_type_options = sorted(df["Type of Milk"].dropna().unique())
 sample_source_options = ['Prepped in Milk Room', 'Scavenged']
 secretor_options = sorted(df["Secretor Status"].dropna().unique())
 
@@ -502,7 +502,7 @@ selected_secretor = st.selectbox("Select Secretor Status", secretor_options, key
 
 # Filter the data correctly
 filtered_df = df[
-    (df["MBM/DMB?"] == selected_milk) &
+    (df["Type of Milk"] == selected_milk) &
     (df["Sample Source"] == selected_source) &
     (df["Secretor Status"] == selected_secretor)
 ]
@@ -645,9 +645,9 @@ df.columns = df.columns.str.strip()
 st.subheader ("Individual HMO Relative Abundance & Growth")
 # Color and symbol maps
 mbm_colors = {
-    "MBM": "#E24ADF",
+    "MOM": "#E24ADF",
     "DBM": "#817287",
-    "MBM + DBM": "#C2A4EC",
+    "MOM + DBM": "#C2A4EC",
     "Other": "#1C1C1C"
 }
 
@@ -705,10 +705,10 @@ fig.add_trace(go.Scatter(
 ))
 
 # HMO points by MBM/DBM and Sample Source
-for mbm_type in subject_df["MBM/DMB?"].dropna().unique():
+for mbm_type in subject_df["Type of Milk"].dropna().unique():
     for sample_source in subject_df["Sample Source"].dropna().unique():
         filtered = subject_df[
-            (subject_df["MBM/DMB?"] == mbm_type) &
+            (subject_df["Type of Milk"] == mbm_type) &
             (subject_df["Sample Source"] == sample_source)
         ]
         fig.add_trace(go.Scatter(
@@ -725,10 +725,10 @@ for mbm_type in subject_df["MBM/DMB?"].dropna().unique():
             hovertext=[
                 f"TPN: {t}<br>HMF: {h}<br>CGA: {c}<br>Iron: {i}<br>Source: {s}" 
                 for t, h, c, i, s in zip(
-                    filtered["TPN Y/N?"],
-                    filtered["HMF Y/N?"],
+                    filtered["TPN"],
+                    filtered["HMF"],
                     filtered["CGA"],
-                    filtered["Iron Y/N?"],
+                    filtered["Iron"],
                     filtered["Sample Source"]
                 )
             ],

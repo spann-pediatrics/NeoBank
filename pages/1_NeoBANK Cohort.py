@@ -4,19 +4,15 @@ import plotly.express as px
 import numpy as np
 import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="Combined Cohort Dashboard", layout="wide")
-st.title("Combined Cohort: Linked + Unlinked Samples")
+st.set_page_config(page_title="NeoBANK Cohort Dashboard", layout="wide")
+st.title("NeoBANK Cohort: Linked + Unlinked Samples")
 
 # Load your files
 unlinked = pd.read_excel("Cleaned Data/Unlinked_Merged.xlsx")
-linked = pd.read_excel("Cleaned Data/cleaned_linkedmeta_updated.xlsx")
+linked = pd.read_excel("Cleaned Data/Linked_Merged.xlsx")
+combined = pd.read_excel("Cleaned Data/merged_df.xlsx")
 
-# Clean and concatenate
-unlinked.columns = unlinked.columns.str.strip()
-linked.columns = linked.columns.str.strip()
-combined = pd.concat([unlinked, linked], ignore_index=True)
-
-st.success(f"Combined dataset has {combined.shape[0]} samples and {combined['Subject ID'].nunique()} unique subjects.")
+# st.success(f"Combined dataset has {combined.shape[0]} samples and {combined['Subject ID'].nunique()} unique subjects.")
 
 # Count metrics
 num_subjects = combined["Subject ID"].nunique()
@@ -340,4 +336,6 @@ for sex in ["Female", "Male"]:
 ### 
 
 st.header("Clinical Outcomes - TPN")
+
+
 

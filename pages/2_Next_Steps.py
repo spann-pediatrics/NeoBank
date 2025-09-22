@@ -60,7 +60,7 @@ with st.container():
     """, unsafe_allow_html=True)
 
 
-df = pd.read_excel("Unlinked_Merged.xlsx")
+df = pd.read_excel("Cleaned Data/Unlinked_Merged.xlsx")
 
 
 hmo_columns = ["2FL", "DFLAC", "3SL", "6SL", "LNT", "LNnT", "LNFPI",
@@ -75,7 +75,7 @@ from plotly.subplots import make_subplots
 
 st.subheader ("EXAMPLE) Longitudinal HMO Heatmap with Growth Metric & Clinical Events")
 # --- Load data ---
-df = pd.read_excel("Unlinked_Merged.xlsx")
+
 
 hmo_columns = ["2FL", "DFLAC", "3SL", "6SL", "LNT", "LNnT", "LNFPI",
                "LNFPII", "LNFPIII", "LSTc", "DFLNT", "DSLNT", 

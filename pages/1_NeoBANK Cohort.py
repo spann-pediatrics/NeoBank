@@ -105,28 +105,58 @@ fig_aliquots.update_layout(
 st.plotly_chart(fig_aliquots, use_container_width=True)
 
 
-# Bar chart for number of Female and Male infants
-sex_counts = combined["Infant Sex"].value_counts().loc[["Female", "Male"]]
 
-fig_sex = px.bar(
-    sex_counts.reset_index(),
-    x="Infant Sex",
-    y="count",
-    color="Infant Sex",
-    color_discrete_map={"Female": "#FF69B4", "Male": "#1E90FF"},  # Pink for Female, Blue for Male
-    text="count",
-    title="Number of Infants by Sex"
-)
 
-fig_sex.update_layout(
-    xaxis_title="Infant Sex",
-    yaxis_title="Number of Infants",
-    plot_bgcolor="#ffffff",
-    paper_bgcolor="#ffffff",
-    font_color="#000000"
-)
+#############-----------------
+st.subheader("Subject Demographics")
 
-st.plotly_chart(fig_sex, use_container_width=True)
+col_linked, col_sex = st.columns(2)
+
+# Left: Bar chart for number of 'N' and 'Y' in "Linked?"
+with col_linked:
+    linked_counts = combined["Linked"].value_counts().loc[["N", "Y"]]
+    fig_linked = px.bar(
+        linked_counts.reset_index(),
+        x="Linked",
+        y="count",
+        color="Linked",
+        color_discrete_map={"N": "#6B6B6B", "Y": "#AED4E4"},
+        text="count",
+        title="Number of Linked vs Unlinked Samples"
+    )
+    fig_linked.update_layout(
+        xaxis_title="Linked",
+        yaxis_title="Number of Samples",
+        plot_bgcolor="#ffffff",
+        paper_bgcolor="#ffffff",
+        font_color="#000000"
+    )
+    st.plotly_chart(fig_linked, use_container_width=True)
+
+
+
+with col_sex:
+    # Bar chart for number of Female and Male infants
+    sex_counts = combined["Infant Sex"].value_counts().loc[["Female", "Male"]]
+    fig_sex = px.bar(
+        sex_counts.reset_index(),
+        x="Infant Sex",
+        y="count",
+        color="Infant Sex",
+        color_discrete_map={"Female": "#F09EC7", "Male": "#79B8F6"},  # Pink for Female, Blue for Male
+        text="count",
+        title="Number of Infants by Sex"
+    )
+
+    fig_sex.update_layout(
+        xaxis_title="Infant Sex",
+        yaxis_title="Number of Infants",
+        plot_bgcolor="#ffffff",
+        paper_bgcolor="#ffffff",
+        font_color="#000000"
+    )
+
+    st.plotly_chart(fig_sex, use_container_width=True)
 
 #############-----------------
 st.subheader("Milk & Nutrition Details")

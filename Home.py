@@ -20,7 +20,7 @@ with st.container():
         This dashboard is a visualzing human milk components from NeoBANK samples.  
         </p>
         <p>
-        With only 34 subjects in this dataset, results are preliminary — but the goal is to show the 
+        The current results are preliminary — but the goal is to show the 
         <strong>possibilities</strong>:  
         <ul>
             <li>Defining human milk oligosaccharide (HMO) composition </li>
@@ -35,20 +35,19 @@ with st.container():
 st.title("Raw Data")
 
 # Load the data
-df = pd.read_excel("Cleaned Data/Unlinked_Merged.xlsx")
-
-st.subheader("📄 UNLINKED - Raw Data Preview")
+df = pd.read_excel("Cleaned Data/merged_df.xlsx")
+st.subheader("📄 Raw Data Preview")
 st.dataframe(df.head(10))  # Show only the first 10 rows for now
 
 # Convert to CSV for download
 csv = df.to_csv(index=False)
 
-st.download_button(
-    label="📥 Download Full Dataset (CSV)",
-    data=csv,
-    file_name="Unlinked_Merged.csv",
-    mime="text/csv"
-)
+# st.download_button(
+#     label="📥 Download Full Dataset (CSV)",
+#     data=csv,
+#     file_name="Unlinked_Merged.csv",
+#     mime="text/csv"
+# )
 
 # Column descriptions dictionary (customize as needed)
 column_descriptions = {
@@ -74,9 +73,9 @@ column_descriptions = {
 }
 
 # Expander to display column descriptions
-with st.expander("🧾 Column Descriptions"):
-    for col, desc in column_descriptions.items():
-        st.markdown(f"**{col}**: {desc}")
+# with st.expander("🧾 Column Descriptions"):
+#     for col, desc in column_descriptions.items():
+#         st.markdown(f"**{col}**: {desc}")
 
 
 ####### Ability to download specific data (filter via subject ID if longitudinal) -----

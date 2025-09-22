@@ -37,27 +37,27 @@ with st.container():
 
 
 
-    st.markdown("""
-        <div style="
-            background-color: #ffe8e8;
-            padding: 1.25rem;
-            border-radius: 10px;
-            margin-bottom: 1.5rem;
-            color: #000000;
-            font-size: 1rem;
-            line-height: 1.5;
-        ">
-         <h3 style="margin-top:0;">Questions / Clarification Needed:</h3>
-         <ul>
-            <li>What does TPN mean for the infant?</li>
-            <li>Could we get get the amount of fortifier added to the sample? 
-                <p>
-                    **Fortifier dilutes the HMO concentrations</li>
-            <li>What does the “switched to fortifier” mean for infants?</li>
-            <li>Are there other outcomes we can get aside from growth metrics?</li>
-         </ul>
-        </div>
-    """, unsafe_allow_html=True)
+    # st.markdown("""
+    #     <div style="
+    #         background-color: #ffe8e8;
+    #         padding: 1.25rem;
+    #         border-radius: 10px;
+    #         margin-bottom: 1.5rem;
+    #         color: #000000;
+    #         font-size: 1rem;
+    #         line-height: 1.5;
+    #     ">
+    #      <h3 style="margin-top:0;">Questions / Clarification Needed:</h3>
+    #      <ul>
+    #         <li>What does TPN mean for the infant?</li>
+    #         <li>Could we get get the amount of fortifier added to the sample? 
+    #             <p>
+    #                 **Fortifier dilutes the HMO concentrations</li>
+    #         <li>What does the “switched to fortifier” mean for infants?</li>
+    #         <li>Are there other outcomes we can get aside from growth metrics?</li>
+    #      </ul>
+    #     </div>
+    # """, unsafe_allow_html=True)
 
 
 df = pd.read_excel("Cleaned Data/Unlinked_Merged.xlsx")
